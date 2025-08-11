@@ -7,7 +7,8 @@ const logger = require('../utils/logger');
 
 // Generate JWT Token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback-secret', {
+  // Use userId in payload to match middleware expectations
+  return jwt.sign({ userId: id }, process.env.JWT_SECRET || 'fallback-secret', {
     expiresIn: process.env.JWT_EXPIRE || '30d'
   });
 };
@@ -59,9 +60,6 @@ const signup = async (req, res) => {
       });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(password, salt);
 
     // Generate 6-digit verification code
     const emailVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -71,9 +69,9 @@ const signup = async (req, res) => {
     const user = await User.create({
       name: fullName.trim(),
       email: email.toLowerCase().trim(),
-      password: hashedPassword,
+      password,
       role: role || 'user',
-      phoneNumbe: phoneNumber,
+      phoneNumber,
       emailVerificationCode: emailVerificationCode, // Changed from emailVerificationToken
       emailVerificationExpire: emailVerificationExpire,
       isEmailVerified: false
@@ -104,7 +102,7 @@ const signup = async (req, res) => {
 
   } catch (error) {
     logger.error(`Signup error: ${error.message}`);
-    
+
     // Handle MongoDB duplicate key error
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
@@ -139,7 +137,7 @@ const login = async (req, res) => {
 
     // Check for user (include password for comparison)
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
