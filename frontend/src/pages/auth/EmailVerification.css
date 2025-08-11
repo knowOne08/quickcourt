@@ -1,0 +1,70 @@
+/* EmailVerification.css */
+.email-verification-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--odoo-primary), var(--odoo-secondary));
+  padding: 20px;
+}
+
+.verification-container {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 60px 40px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.verification-icon {
+  font-size: 4rem;
+  margin-bottom: 24px;
+}
+
+.verification-icon.verifying {
+  animation: pulse 2s infinite;
+}
+
+.verification-content h1 {
+  color: var(--odoo-primary);
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.verification-content p {
+  color: var(--odoo-gray);
+  font-size: 1.1rem;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.back-btn {
+  background: var(--odoo-primary);
+  color: var(--white);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.back-btn:hover {
+  background: #5f3e57;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}

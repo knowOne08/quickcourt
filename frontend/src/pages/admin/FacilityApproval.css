@@ -1,0 +1,334 @@
+/* FacilityApproval.css */
+.facility-approval {
+  padding: 24px;
+  background-color: var(--light-gray);
+  min-height: 100vh;
+}
+
+.approval-header {
+  margin-bottom: 32px;
+}
+
+.approval-header h1 {
+  color: var(--odoo-primary);
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.approval-header p {
+  color: var(--odoo-gray);
+  font-size: 1.1rem;
+}
+
+.approval-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+/* Facilities List */
+.facilities-list {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(113, 75, 103, 0.1);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.facilities-list h3 {
+  color: var(--odoo-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-gray);
+}
+
+.no-facilities {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--odoo-gray);
+}
+
+.facilities-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.facility-card {
+  border: 2px solid var(--border-gray);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--white);
+}
+
+.facility-card:hover {
+  border-color: var(--odoo-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(113, 75, 103, 0.15);
+}
+
+.facility-card.selected {
+  border-color: var(--odoo-primary);
+  background: linear-gradient(135deg, var(--odoo-primary), var(--odoo-secondary));
+  color: var(--white);
+}
+
+.facility-card .facility-image {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.facility-card .facility-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.facility-info h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.facility-info p {
+  margin: 4px 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+.facility-sports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.sport-tag {
+  background: rgba(113, 75, 103, 0.1);
+  color: var(--odoo-primary);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.facility-card.selected .sport-tag {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--white);
+}
+
+.facility-owner {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Facility Details */
+.facility-details {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(113, 75, 103, 0.1);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.facility-details h3 {
+  color: var(--odoo-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-gray);
+}
+
+.details-content {
+  margin-bottom: 24px;
+}
+
+.detail-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+}
+
+.detail-section h4 {
+  color: var(--odoo-primary);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.detail-section p {
+  margin: 8px 0;
+  color: var(--black);
+}
+
+.detail-section strong {
+  color: var(--odoo-primary);
+  font-weight: 600;
+}
+
+.sports-list,
+.amenities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sport-badge,
+.amenity-badge {
+  background: var(--odoo-primary);
+  color: var(--white);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.amenity-badge {
+  background: var(--odoo-secondary);
+}
+
+/* Facility Gallery */
+.facility-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.facility-gallery img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid var(--border-gray);
+}
+
+/* Approval Actions */
+.approval-actions {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid var(--border-gray);
+}
+
+.comment-section {
+  margin-bottom: 20px;
+}
+
+.comment-section label {
+  display: block;
+  color: var(--odoo-primary);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.comment-section textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border: 2px solid var(--border-gray);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+.comment-section textarea:focus {
+  outline: none;
+  border-color: var(--odoo-primary);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.btn-success {
+  background: var(--success);
+  color: var(--white);
+}
+
+.btn-success:hover {
+  background: #1a9b84;
+  transform: translateY(-2px);
+}
+
+.btn-error {
+  background: var(--error);
+  color: var(--white);
+}
+
+.btn-error:hover {
+  background: #d85a65;
+  transform: translateY(-2px);
+}
+
+/* Loading State */
+.approval-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-size: 1.2rem;
+  color: var(--odoo-gray);
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .approval-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .facility-details {
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .facility-approval {
+    padding: 16px;
+  }
+  
+  .approval-header h1 {
+    font-size: 2rem;
+  }
+  
+  .facilities-list,
+  .facility-details {
+    padding: 16px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .facility-gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
