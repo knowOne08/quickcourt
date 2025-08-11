@@ -1,6 +1,6 @@
 // frontend/src/context/BookingContext.js
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import bookingService from '../services/bookingService';
+import { bookingService } from '../services/bookingService';
 
 const BookingContext = createContext(null);
 

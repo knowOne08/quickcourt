@@ -1,46 +1,19 @@
 // frontend/src/services/authService.js
 import api from './api';
 
-const FALLBACK_USER_KEY = 'cached_user_data';
-
-const saveUserToLocalStorage = (userData) => {
-  try {
-    localStorage.setItem(FALLBACK_USER_KEY, JSON.stringify(userData));
-  } catch (err) {
-    console.error('Error saving user data:', err);
-  }
-};
-
-const getCachedUser = () => {
-  try {
-    const userData = localStorage.getItem(FALLBACK_USER_KEY);
-    return userData ? JSON.parse(userData) : null;
-  } catch (err) {
-    console.error('Error reading cached user data:', err);
-    return null;
-  }
-};
-
 export const authService = {
   // Authentication
   signup: async (userData) => {
     const response = await api.post('/auth/signup', userData);
-    if (response.data?.user) {
-      saveUserToLocalStorage(response.data.user);
-    }
     return response;
   },
 
   login: async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
-    if (response.data?.user) {
-      saveUserToLocalStorage(response.data.user);
-    }
     return response;
   },
 
   logout: () => {
-    localStorage.removeItem(FALLBACK_USER_KEY);
     return api.post('/auth/logout');
   },
 
@@ -58,38 +31,13 @@ export const authService = {
 
   // User profile (backend exposes these under /users)
   getCurrentUser: async () => {
-    try {
-      const response = await api.get('users/profile');
-      if (response.data?.user) {
-        saveUserToLocalStorage(response.data.user);
-        return response;
-      }
-      // If no user in response, try fallback
-      const cachedUser = getCachedUser();
-      if (cachedUser) {
-        return { data: { user: cachedUser } };
-      }
-      throw new Error('No user data available');
-    } catch (error) {
-      // If server error, try fallback
-      const cachedUser = getCachedUser();
-      if (cachedUser) {
-        return { data: { user: cachedUser } };
-      }
-      throw error;
-    }
+    const response = await api.get('/users/profile');
+    return response;
   },
 
   updateProfile: async (userData) => {
-    try {
-      const response = await api.patch('users/profile', userData);
-      if (response.data?.user) {
-        saveUserToLocalStorage(response.data.user);
-      }
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.patch('/users/profile', userData);
+    return response;
   },
 
   uploadAvatar: (formData) => api.post('/auth/upload-avatar', formData, {

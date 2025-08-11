@@ -29,7 +29,8 @@ const authReducer = (state, action) => {
         user: null,
         token: null,
         isAuthenticated: false,
-        loading: false
+        loading: false,
+        role: null
       };
     case 'LOAD_USER_SUCCESS':
       return {
@@ -45,7 +46,8 @@ const authReducer = (state, action) => {
         user: null,
         token: null,
         isAuthenticated: false,
-        loading: false
+        loading: false,
+        role: null
       };
     case 'SET_LOADING':
       return {
@@ -112,7 +114,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.getCurrentUser();
 
-      if (!response?.data?.user) {
+      if (!response?.data?.success || !response?.data?.user) {
         throw new Error('Invalid response format');
       }
 
@@ -129,24 +131,26 @@ export const AuthProvider = ({ children }) => {
           dispatch({ type: 'LOAD_USER_FAIL' });
         } else if (status === 500) {
           console.error('Server error:', error.response.data);
-          dispatch({ type: 'SET_ERROR', payload: 'Server error occurred. Please try again later.' });
         }
       } else if (error.request) {
         // Request made but no response
         console.error('No response received:', error.request);
-        dispatch({ type: 'SET_ERROR', payload: 'No response from server. Please check your connection.' });
       } else {
         // Other errors
         console.error('Error:', error.message);
-        dispatch({ type: 'SET_ERROR', payload: 'An unexpected error occurred.' });
       }
-      dispatch({ type: 'SET_LOADING', payload: false });
+      dispatch({ type: 'LOAD_USER_FAIL' });
     }
   };
 
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
+      
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.error || 'Login failed');
+      }
+
       const { user, token } = response.data;
 
       localStorage.setItem('token', token);
@@ -157,7 +161,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.error || error.response?.data?.message || 'Login failed'
+        message: error.response?.data?.error || error.message || 'Login failed'
       };
     }
   };
@@ -165,11 +169,16 @@ export const AuthProvider = ({ children }) => {
   const signup = async (userData) => {
     try {
       const response = await authService.signup(userData);
+      
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.error || 'Signup failed');
+      }
+
       return { success: true, data: response.data };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.error || error.response?.data?.message || 'Signup failed'
+        message: error.response?.data?.error || error.message || 'Signup failed'
       };
     }
   };
@@ -180,20 +189,25 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: 'LOGOUT' });
   };
 
-  const verifyEmail = async (token) => {
+  const verifyEmail = async (code) => {
     try {
-      const response = await authService.verifyEmail(token);
-      const { user, token: authToken } = response.data;
+      const response = await authService.verifyEmail(code);
+      
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.error || 'Email verification failed');
+      }
 
-      localStorage.setItem('token', authToken);
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token: authToken } });
-      scheduleExpiryHandler(authToken);
+      const { user, token } = response.data;
+
+      localStorage.setItem('token', token);
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+      scheduleExpiryHandler(token);
 
       return { success: true };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.error || error.response?.data?.message || 'Email verification failed'
+        message: error.response?.data?.error || error.message || 'Email verification failed'
       };
     }
   };

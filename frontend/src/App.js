@@ -13,6 +13,7 @@ import EmailVerification from './pages/auth/EmailVerification';
 import Home from './pages/user/Home';
 import VenuesList from './pages/user/VenuesList';
 import VenueDetails from './pages/user/VenueDetails';
+import VenueTest from './pages/user/VenueTest';
 import BookingPage from './pages/user/BookingPage';
 import Profile from './pages/user/Profile';
 import MyBookings from './pages/user/MyBookings';
@@ -49,6 +50,7 @@ function App() {
                 <Route path="/verify-email" element={<EmailVerification />} />
                 <Route path="/venues" element={<VenuesList />} />
                 <Route path="/venue/:id" element={<VenueDetails />} />
+                <Route path="/venue-test" element={<VenueTest />} />
 
                 {/* Protected User Routes */}
                 <Route path="/book/:venueId" element={

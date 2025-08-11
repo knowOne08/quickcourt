@@ -1,12 +1,14 @@
 // frontend/src/pages/auth/EmailVerification.js
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/authService';
 import './EmailVerification.css';
 
 const EmailVerification = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { verifyEmail } = useAuth();
 
   const email = searchParams.get('email') || 'user@example.com';
 
@@ -81,25 +83,35 @@ const EmailVerification = () => {
       setSubmitting(true);
       setError('');
 
-      // Call the backend API to verify the email
-      const response = await authService.verifyEmail(code);
+      // Use the AuthContext verifyEmail function
+      const result = await verifyEmail(code);
       
-      if (response.data.success) {
-        // Store the token if provided
-        if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+      if (result.success) {
+        // Navigate to dashboard or home page based on user role
+        const userRole = result.user?.role || 'user';
+        switch (userRole) {
+          case 'admin':
+            navigate('/admin/dashboard', { 
+              replace: true,
+              state: { message: 'Email verified successfully! Welcome to QuickCourt!' }
+            });
+            break;
+          case 'facility_owner':
+            navigate('/owner/dashboard', { 
+              replace: true,
+              state: { message: 'Email verified successfully! Welcome to QuickCourt!' }
+            });
+            break;
+          case 'user':
+          default:
+            navigate('/', { 
+              replace: true,
+              state: { message: 'Email verified successfully! Welcome to QuickCourt!' }
+            });
+            break;
         }
-
-        // Navigate to dashboard or home page
-        navigate('/', { 
-          replace: true,
-          state: { 
-            message: 'Email verified successfully! Welcome to QuickCourt!' 
-          }
-        });
       } else {
-        setError(response.data.error || 'Verification failed');
+        setError(result.message || 'Verification failed');
       }
     } catch (error) {
       console.error('Verification error:', error);
@@ -123,7 +135,6 @@ const EmailVerification = () => {
           <img src="https://placehold.co/600x800?text=IMAGE" alt="Verification" />
         </div>
         <div className="verify-right">
-          {/* <h2 className="brand">QUICKCOURT</h2> */}
           <h3 className="title">
             <span role="img" aria-label="lock">🔒</span> VERIFY YOUR EMAIL
           </h3>
