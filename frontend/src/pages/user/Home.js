@@ -121,22 +121,25 @@ const Home = () => {
             <div key={venue.id} className="venue-card">
               <div className="venue-image">
                 <img src={venue.image} alt={venue.name} />
-                <div className="image-placeholder">Image</div>
+                
               </div>
               <div className="venue-info">
+                <div className="venue-data">
                 <h3>{venue.name}</h3>
                 <div className="venue-rating">
                   <span className="stars">⭐ {venue.rating}</span>
                   <span className="review-count">({venue.reviews})</span>
                 </div>
+                </div>
                 <p className="venue-location">📍 {venue.location}</p>
+               
                 <div className="venue-amenities">
                   <span className="amenity-tag">🏸 badminton</span>
                   <span className="amenity-tag">❄️ ac-court</span>
                 </div>
                 <div className="venue-actions">
                   <span className="price-range">{venue.priceRange}</span>
-                  <button className="book-button">Book</button>
+                  <button className="book-button">View Details</button>
                 </div>
               </div>
             </div>
