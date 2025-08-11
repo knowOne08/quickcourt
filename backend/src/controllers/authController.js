@@ -69,7 +69,8 @@ const signup = async (req, res) => {
     const user = await User.create({
       name: fullName.trim(),
       email: email.toLowerCase().trim(),
-      password,
+      password: password,
+
       role: role || 'user',
       phoneNumber,
       emailVerificationCode: emailVerificationCode, // Changed from emailVerificationToken
@@ -137,7 +138,6 @@ const login = async (req, res) => {
 
     // Check for user (include password for comparison)
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -146,7 +146,10 @@ const login = async (req, res) => {
     }
 
     // Check if password matches
-    const isMatch = await bcrypt.compare(password, user.password);
+    console.log(password)
+    const isMatch = await user.comparePassword(password);
+    // const isMatch = await bcrypt.compare(password, user.password);
+    console.log(isMatch)
     if (!isMatch) {
       return res.status(401).json({
         success: false,
