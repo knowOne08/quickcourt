@@ -66,6 +66,9 @@ const userSchema = new mongoose.Schema({
   gender: {
     type: String,
     enum: ['male', 'female', 'other']
+  },
+  passwordChangedAt: {
+    type: Date
   }
 }, {
   timestamps: true
@@ -122,6 +125,20 @@ userSchema.methods.toJSON = function() {
   delete user.passwordResetToken;
   delete user.passwordResetExpires;
   return user;
+};
+
+// Add this method to your User schema
+userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return JWTTimestamp < changedTimestamp;
+  }
+
+  // False means NOT changed
+  return false;
 };
 
 module.exports = mongoose.model('User', userSchema);
