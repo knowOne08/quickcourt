@@ -59,10 +59,6 @@ const signup = async (req, res) => {
       });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     // Generate 6-digit verification code
     const emailVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const emailVerificationExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -71,7 +67,7 @@ const signup = async (req, res) => {
     const user = await User.create({
       name: fullName.trim(),
       email: email.toLowerCase().trim(),
-      password: hashedPassword,
+      password: password,
       role: role || 'user',
       phoneNumbe: phoneNumber,
       emailVerificationCode: emailVerificationCode, // Changed from emailVerificationToken
@@ -139,7 +135,7 @@ const login = async (req, res) => {
 
     // Check for user (include password for comparison)
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-    
+    console.log(user)
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -148,7 +144,8 @@ const login = async (req, res) => {
     }
 
     // Check if password matches
-    const isMatch = await bcrypt.compare(password, user.password);
+    console.log(password)
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,

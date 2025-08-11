@@ -22,3 +22,5 @@ const router = express.Router();
 // router.delete('/:id', auth, venueController.deleteVenue);
 
 module.exports = router;
+
+// Bookmark
