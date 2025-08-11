@@ -136,6 +136,7 @@ const login = async (req, res) => {
     // Check for user (include password for comparison)
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     console.log(user)
+   
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -146,6 +147,8 @@ const login = async (req, res) => {
     // Check if password matches
     console.log(password)
     const isMatch = await user.comparePassword(password);
+    // const isMatch = await bcrypt.compare(password, user.password);
+    console.log(isMatch)
     if (!isMatch) {
       return res.status(401).json({
         success: false,
