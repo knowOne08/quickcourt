@@ -20,16 +20,16 @@ const SignUp = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState({ fullName: '', email: '', password: '', confirmPassword: '', role: '' });
 
 
   const { signup } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
     setError('');
   };
   const handleImageChange = (e) => {
@@ -49,23 +49,47 @@ const SignUp = () => {
   };
 
 
+  // basic client-side validation
+  const validate = () => {
+    const next = { fullName: '', email: '', password: '', confirmPassword: '', role: '' };
+    if (!formData.fullName.trim()) next.fullName = 'Full name is required';
+    else if (formData.fullName.trim().length < 2) next.fullName = 'Full name must be at least 2 characters';
+
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) next.email = 'Email is required';
+    else if (!emailRe.test(formData.email.trim())) next.email = 'Enter a valid email address';
+
+    if (!formData.password) next.password = 'Password is required';
+    else if (formData.password.length < 8) next.password = 'Password must be at least 8 characters';
+
+    if (!formData.confirmPassword) next.confirmPassword = 'Please confirm your password';
+    else if (formData.password !== formData.confirmPassword) next.confirmPassword = 'Passwords do not match';
+
+    if (!formData.role) next.role = 'Please select an account type';
+
+    setErrors(next);
+    return !next.fullName && !next.email && !next.password && !next.confirmPassword && !next.role;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
+    if (!validate()) return;
+    setLoading(true);
 
     const result = await signup(formData);
 
     if (result.success) {
       navigate('/verify-email');
     } else {
-      setError(result.message);
+      // map duplicate email or validation to email field if applicable
+      const msg = result.message || '';
+      if (/email/i.test(msg)) {
+        setErrors((prev) => ({ ...prev, email: msg }));
+      } else {
+        setError(msg);
+      }
     }
 
     setLoading(false);
@@ -124,7 +148,10 @@ const SignUp = () => {
                 onChange={handleChange}
                 required
                 placeholder="Enter your full name"
+                className={errors.fullName ? 'input-error' : ''}
+                aria-invalid={!!errors.fullName}
               />
+              {errors.fullName && <small className="field-error">{errors.fullName}</small>}
             </div>
 
             <div className="form-group">
@@ -137,7 +164,10 @@ const SignUp = () => {
                 onChange={handleChange}
                 required
                 placeholder="Enter your email"
+                className={errors.email ? 'input-error' : ''}
+                aria-invalid={!!errors.email}
               />
+              {errors.email && <small className="field-error">{errors.email}</small>}
             </div>
 
             <div className="form-group">
@@ -148,6 +178,8 @@ const SignUp = () => {
                 value={formData.role}
                 onChange={handleChange}
                 required
+                className={errors.role ? 'input-error' : ''}
+                aria-invalid={!!errors.role}
               >
                 <option value="user">Sports Player</option>
                 <option value="facility_owner">Facility Owner</option>
@@ -166,7 +198,10 @@ const SignUp = () => {
                   required
                   placeholder="Create a password"
                   minLength="8"
+                  className={errors.password ? 'input-error' : ''}
+                  aria-invalid={!!errors.password}
                 />
+                {errors.password && <small className="field-error">{errors.password}</small>}
                 <button
                   type="button"
                   className="password-toggle-btn"
@@ -190,7 +225,10 @@ const SignUp = () => {
                   required
                   placeholder="Confirm your password"
                   minLength="8"
+                  className={errors.confirmPassword ? 'input-error' : ''}
+                  aria-invalid={!!errors.confirmPassword}
                 />
+                {errors.confirmPassword && <small className="field-error">{errors.confirmPassword}</small>}
                 <button
                   type="button"
                   className="password-toggle-btn"

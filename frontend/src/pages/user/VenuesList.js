@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './VenuList.css';
 
 const mockVenues = Array.from({ length: 12 }, (_, i) => ({
@@ -14,6 +15,7 @@ const mockVenues = Array.from({ length: 12 }, (_, i) => ({
 
 const VenuesList = () => {
   const [page, setPage] = useState(2);
+  const navigate = useNavigate();
 
   return (
     <div className="venues-list-layout">
@@ -83,7 +85,7 @@ const VenuesList = () => {
                     <span key={idx} className="venue-tag-outline">{tag}</span>
                   ))}
                 </div>
-                <button className="view-details-btn-outline">View Details</button>
+                <button className="view-details-btn-outline" onClick={() => navigate(`/venue/${venue.id}`)}>View Details</button>
               </div>
             </div>
           ))}
