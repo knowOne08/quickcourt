@@ -10,16 +10,18 @@ const app = express();
 
 // Basic logger fallback
 const logger = {
-  info: (msg) => console.log(`[INFO] ${msg}`),
-  error: (msg) => console.error(`[ERROR] ${msg}`)
+  info: (msg) => console.log(`[INFO] ${new Date().toISOString()}: ${msg}`),
+  error: (msg) => console.error(`[ERROR] ${new Date().toISOString()}: ${msg}`),
+  warn: (msg) => console.warn(`[WARN] ${new Date().toISOString()}: ${msg}`)
 };
 
 // Try to connect to database, but don't fail if it's not available
 try {
   const connectDB = require('./src/config/database');
   connectDB();
+  logger.info('Database connection initiated');
 } catch (error) {
-  logger.error('Database connection file not found or failed to load');
+  logger.error(`Database connection failed: ${error.message}`);
 }
 
 // Security middleware
@@ -74,106 +76,86 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Try to load routes, but don't fail if they're not available
-try {
-  const authRoutes = require('./src/routes/auth');
-  app.use('/api/auth', authRoutes);
-} catch (error) {
-  logger.error('Auth routes not found');
-  app.use('/api/auth', (req, res) => {
-    res.json({ message: 'Auth routes not implemented yet' });
-  });
-}
+// Helper function to load routes safely
+const loadRoute = (routePath, mountPath, routeName) => {
+  try {
+    const route = require(routePath);
+    if (route && typeof route === 'function') {
+      app.use(mountPath, route);
+      logger.info(`✅ ${routeName} routes loaded successfully at ${mountPath}`);
+      return true;
+    } else {
+      logger.error(`❌ ${routeName} route file exists but doesn't export a valid router`);
+      return false;
+    }
+  } catch (error) {
+    logger.error(`❌ Failed to load ${routeName} routes: ${error.message}`);
+    
+    // Create a fallback route
+    app.use(mountPath, (req, res) => {
+      res.json({ 
+        success: false,
+        message: `${routeName} routes not implemented yet`,
+        error: error.message
+      });
+    });
+    return false;
+  }
+};
 
-try {
-  const userRoutes = require('./src/routes/users');
-  app.use('/api/users', userRoutes);
-} catch (error) {
-  logger.error('User routes not found');
-  app.use('/api/users', (req, res) => {
-    res.json({ message: 'User routes not implemented yet' });
-  });
-}
+// Load all routes
+logger.info('🚀 Loading API routes...');
 
-try {
-  const venueRoutes = require('./src/routes/venues');
-  app.use('/api/venues', venueRoutes);
-} catch (error) {
-  logger.error('Venue routes not found');
-  app.use('/api/venues', (req, res) => {
-    res.json({ message: 'Venue routes not implemented yet' });
-  });
-}
+loadRoute('./src/routes/auth', '/api/auth', 'Auth');
+loadRoute('./src/routes/users', '/api/users', 'User');
+loadRoute('./src/routes/venues', '/api/venues', 'Venue');
+loadRoute('./src/routes/bookings', '/api/bookings', 'Booking');
+loadRoute('./src/routes/payments', '/api/payments', 'Payment');
+loadRoute('./src/routes/owner', '/api/owner', 'Owner');
+loadRoute('./src/routes/admin', '/api/admin', 'Admin');
 
-try {
-  const bookingRoutes = require('./src/routes/bookings');
-  app.use('/api/bookings', bookingRoutes);
-} catch (error) {
-  logger.error('Booking routes not found');
-  app.use('/api/bookings', (req, res) => {
-    res.json({ message: 'Booking routes not implemented yet' });
-  });
-}
-
-try {
-  const paymentRoutes = require('./src/routes/payments');
-  app.use('/api/payments', paymentRoutes);
-} catch (error) {
-  logger.error('Payment routes not found');
-  app.use('/api/payments', (req, res) => {
-    res.json({ message: 'Payment routes not implemented yet' });
-  });
-}
-
-try {
-  const ownerRoutes = require('./src/routes/owner');
-  app.use('/api/owner', ownerRoutes);
-} catch (error) {
-  logger.error('Owner routes not found');
-  app.use('/api/owner', (req, res) => {
-    res.json({ message: 'Owner routes not implemented yet' });
-  });
-}
-
-try {
-  const adminRoutes = require('./src/routes/admin');
-  app.use('/api/admin', adminRoutes);
-} catch (error) {
-  logger.error('Admin routes not found');
-  app.use('/api/admin', (req, res) => {
-    res.json({ message: 'Admin routes not implemented yet' });
-  });
-}
+logger.info('📋 Route loading completed');
 
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: `Route ${req.originalUrl} not found`
   });
 });
 
-// Basic error handler
+// Global error handler
 app.use((err, req, res, next) => {
-  logger.error(err.message);
-  res.status(500).json({
+  logger.error(`Global error handler: ${err.message}`);
+  logger.error(`Stack: ${err.stack}`);
+  
+  res.status(err.status || 500).json({
     success: false,
-    error: 'Server Error'
+    error: process.env.NODE_ENV === 'production' ? 'Server Error' : err.message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  logger.info(`🎉 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  logger.info(`🌐 Health check: http://localhost:${PORT}/health`);
+  logger.info(`🔗 API base: http://localhost:${PORT}/api`);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
-  logger.error('Unhandled Rejection: ' + err.message);
+  logger.error(`Unhandled Rejection: ${err.message}`);
   server.close(() => {
     process.exit(1);
   });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  logger.error(`Uncaught Exception: ${err.message}`);
+  process.exit(1);
 });
 
 module.exports = app;

@@ -1,157 +1,228 @@
-// backend/src/controllers/authController.js
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
 const emailService = require('../services/emailService');
-const otpService = require('../services/otpService');
+const logger = require('../utils/logger');
 
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN
+// Generate JWT Token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback-secret', {
+    expiresIn: process.env.JWT_EXPIRE || '30d'
   });
 };
 
-const createSendToken = (user, statusCode, res) => {
-  const token = signToken(user._id);
-  const cookieOptions = {
-    expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
+// Send token response
+const sendTokenResponse = (user, statusCode, res) => {
+  const token = generateToken(user._id);
+
+  const options = {
+    expires: new Date(
+      Date.now() + (process.env.JWT_COOKIE_EXPIRE || 30) * 24 * 60 * 60 * 1000
+    ),
     httpOnly: true
   };
 
-  if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
+  if (process.env.NODE_ENV === 'production') {
+    options.secure = true;
+  }
 
-  res.cookie('jwt', token, cookieOptions);
-
-  user.password = undefined;
-
-  res.status(statusCode).json({
-    status: 'success',
-    token,
-    data: {
-      user
-    }
-  });
-};
-
-exports.signup = async (req, res, next) => {
-  try {
-    const { fullName, email, password, role, confirmPassword } = req.body;
-
-    // Check if passwords match
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Passwords do not match'
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'User with this email already exists'
-      });
-    }
-
-    // Create verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    const newUser = await User.create({
-      fullName,
-      email,
-      password,
-      role: role || 'user',
-      emailVerificationToken: verificationToken,
-      emailVerificationExpires: verificationExpires
-    });
-
-    // Send verification email
-    await emailService.sendVerificationEmail(email, verificationToken);
-
-    res.status(201).json({
-      status: 'success',
-      message: 'User registered successfully. Please verify your email.',
-      data: {
-        user: {
-          id: newUser._id,
-          email: newUser.email,
-          fullName: newUser.fullName,
-          role: newUser.role
-        }
+  res.status(statusCode)
+    .cookie('token', token, options)
+    .json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        avatar: user.avatar
       }
     });
+};
+
+// @desc    Register user
+// @route   POST /api/auth/signup
+// @access  Public
+const signup = async (req, res) => {
+  try {
+    const { fullName, email, password, role, phoneNumber } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already exists with this email'
+      });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Generate 6-digit verification code
+    const emailVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const emailVerificationExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // Create user
+    const user = await User.create({
+      name: fullName.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      role: role || 'user',
+      phoneNumbe: phoneNumber,
+      emailVerificationCode: emailVerificationCode, // Changed from emailVerificationToken
+      emailVerificationExpire: emailVerificationExpire,
+      isEmailVerified: false
+    });
+
+    console.log("User Created: " + user)
+    // Send verification email with code
+    try {
+      await emailService.sendVerificationEmail(user.email, emailVerificationCode);
+      logger.info(`Verification code sent to ${user.email}`);
+    } catch (emailError) {
+      logger.error(`Failed to send verification email: ${emailError.message}`);
+    }
+
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully. Please check your email for the verification code.',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt
+      }
+    });
+
   } catch (error) {
-    res.status(400).json({
-      status: 'error',
-      message: error.message
+    logger.error(`Signup error: ${error.message}`);
+    
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({
+        success: false,
+        error: `User with this ${field} already exists`
+      });
+    }
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: errors.join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Server error during registration. Please try again.'
     });
   }
 };
 
-exports.login = async (req, res, next) => {
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Please provide email and password'
-      });
-    }
-
-    const user = await User.findOne({ email }).select('+password');
-
-    if (!user || !(await user.comparePassword(password))) {
+    // Check for user (include password for comparison)
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    
+    if (!user) {
       return res.status(401).json({
-        status: 'error',
-        message: 'Incorrect email or password'
+        success: false,
+        error: 'Invalid credentials'
       });
     }
 
-    if (!user.isEmailVerified) {
+    // Check if password matches
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       return res.status(401).json({
-        status: 'error',
-        message: 'Please verify your email before logging in'
+        success: false,
+        error: 'Invalid credentials'
       });
     }
 
-    createSendToken(user, 200, res);
+    // Check if account is active
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: 'Account has been deactivated. Please contact support.'
+      });
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
+    logger.info(`User logged in: ${user.email}`);
+    sendTokenResponse(user, 200, res);
+
   } catch (error) {
-    res.status(400).json({
-      status: 'error',
-      message: error.message
+    logger.error(`Login error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error during login'
     });
   }
 };
 
-exports.verifyEmail = async (req, res, next) => {
+// @desc    Verify email with code
+// @route   POST /api/auth/verify-email
+// @access  Public
+const verifyEmail = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { code } = req.body; // Changed from token to code
 
+    // Find user with valid code
     const user = await User.findOne({
-      emailVerificationToken: token,
-      emailVerificationExpires: { $gt: Date.now() }
+      emailVerificationCode: code, // Changed from emailVerificationToken
+      emailVerificationExpire: { $gt: Date.now() }
     });
+
+    console.log(user)
 
     if (!user) {
       return res.status(400).json({
-        status: 'error',
-        message: 'Token is invalid or has expired'
+        success: false,
+        error: 'Invalid or expired verification code'
       });
     }
 
+    // Update user
     user.isEmailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
+    user.emailVerificationCode = undefined; // Changed from emailVerificationToken
+    user.emailVerificationExpire = undefined;
     await user.save();
 
-    createSendToken(user, 200, res);
+    logger.info(`Email verified for user: ${user.email}`);
+
+    sendTokenResponse(user, 200, res);
+
   } catch (error) {
-    res.status(400).json({
-      status: 'error',
-      message: error.message
+    logger.error(`Email verification error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error during email verification'
     });
   }
+};
+
+module.exports = {
+  signup,
+  login,
+  verifyEmail
 };

@@ -8,7 +8,7 @@ export const authService = {
   logout: () => api.post('/auth/logout'),
   
   // Email verification
-  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
+  verifyEmail: (code) => api.post('/auth/verify-email', { code }),
   resendVerificationEmail: (email) => api.post('/auth/resend-verification', { email }),
   
   // Password management
