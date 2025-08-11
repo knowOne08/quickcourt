@@ -1,316 +1,68 @@
-const { body, param, query, validationResult } = require('express-validator');
-const { ApplicationError } = require('./errorHandler');
+// const express = require('express');require('express-validator');const router = express.Router();const authController = require('../controllers/authController');// Validation middlewareconst authController = require('../controllers/authController');const auth = require('../middleware/auth');ionErrors = (req, res, next) => {dleware/auth');t checkerconst { validateSignup, validateLogin } = require('../middleware/validation');eq);./middleware/validation');, res, next) => {s.isEmpty()) {// Public routestus(400).json({router.post('/signup', validateSignup, authController.signup);map(error => ({router.post('/login', validateLogin, authController.login); error: errors.array()[0].msg,lidateLogin, authController.login); field: error.path,router.post('/logout', authController.logout);   errors: errors.array()thController.logout);   message: error.msg,router.post('/verify-email', authController.verifyEmail);    });il', authController.verifyEmail);      value: error.value// Protected routesrouter.get('/me', auth, authController.getMe);// Test routerouter.get('/test', (req, res) => {  res.json({    success: true,    message: 'Auth routes working'    .isLength({ min: 2, max: 50 })ge: 'Auth routes working'  next();  });ust be between 2 and 50 characters')});module.exports = router;});    .matches(/^[a-zA-Z\s]+$/)module.exports = router;    .withMessage('Name can only contain letters and spaces'),    body('email')RegistrationRules = () => {    .isEmail()    .normalizeEmail()e')    .withMessage('Please provide a valid email address'),    body('password')e between 2 and 50 characters')    .isLength({ min: 6 })    .withMessage('Password must be at least 6 characters long')  .withMessage('Name can only contain letters and spaces'),    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),)    body('role')se provide a valid email address')    .optional()  .normalizeEmail(),    .isIn(['user', 'facility_owner', 'admin'])    .withMessage('Role must be user, facility_owner, or admin'),    body('phoneNumber')haracters long')    .optional()  'Please provide a valid phone number'),e()  .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),  handleValidationErrors];  .optional()// Login validationhone('en-IN')const validateLogin = [e('Please provide a valid Indian phone number'),  body('email')    .isEmail()    .normalizeEmail()  .optional()    .withMessage('Please provide a valid email address'),    .isIn(['user', 'facility_owner'])        .withMessage('Role must be either user or facility_owner')  body('password')    .notEmpty()    .withMessage('Password is required'),  ules = () => {  handleValidationErrors];  .isEmail()module.exports = {Please provide a valid email address')  validateSignup,mail(),  validateLogin,  handleValidationErrorsbody('password')};    .notEmpty()  reviewRules};
+const { body, validationResult } = require('express-validator');
 
-// Validation result checker
+// Validation error handler
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const errorMessages = errors.array().map(error => ({
-      field: error.path,
-      message: error.msg,
-      value: error.value
-    }));
-
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
-      errors: errorMessages
+      error: errors.array()[0].msg,
+      errors: errors.array()
     });
   }
   next();
 };
 
-// User validation rules
-const userRegistrationRules = () => {
-  return [
-    body('name')
-      .trim()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Name must be between 2 and 50 characters')
-      .matches(/^[a-zA-Z\s]+$/)
-      .withMessage('Name can only contain letters and spaces'),
-    
-    body('email')
-      .isEmail()
-      .withMessage('Please provide a valid email address')
-      .normalizeEmail(),
-    
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters long')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-      .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-    
-    body('phone')
-      .optional()
-      .isMobilePhone('en-IN')
-      .withMessage('Please provide a valid Indian phone number'),
-    
-    body('role')
-      .optional()
-      .isIn(['user', 'facility_owner'])
-      .withMessage('Role must be either user or facility_owner')
-  ];
-};
+// Signup validation
+const validateSignup = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Name must be between 2 and 50 characters'),
+  
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+  
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long'),
+  
+  body('role')
+    .optional()
+    .isIn(['user', 'facility_owner', 'admin'])
+    .withMessage('Role must be user, facility_owner, or admin'),
+  
+  handleValidationErrors
+];
 
-const userLoginRules = () => {
-  return [
-    body('email')
-      .isEmail()
-      .withMessage('Please provide a valid email address')
-      .normalizeEmail(),
-    
-    body('password')
-      .notEmpty()
-      .withMessage('Password is required')
-  ];
-};
+// Login validation
+const validateLogin = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+  
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required'),
+  
+  handleValidationErrors
+];
 
-const userUpdateRules = () => {
-  return [
-    body('name')
-      .optional()
-      .trim()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Name must be between 2 and 50 characters'),
-    
-    body('phone')
-      .optional()
-      .isMobilePhone('en-IN')
-      .withMessage('Please provide a valid Indian phone number'),
-    
-    body('preferences.sports')
-      .optional()
-      .isArray()
-      .withMessage('Sports preferences must be an array'),
-    
-    body('preferences.location')
-      .optional()
-      .trim()
-      .isLength({ min: 2 })
-      .withMessage('Location must be at least 2 characters')
-  ];
-};
-
-// Venue validation rules
-const venueCreationRules = () => {
-  return [
-    body('name')
-      .trim()
-      .isLength({ min: 3, max: 100 })
-      .withMessage('Venue name must be between 3 and 100 characters'),
-    
-    body('description')
-      .trim()
-      .isLength({ min: 10, max: 1000 })
-      .withMessage('Description must be between 10 and 1000 characters'),
-    
-    body('location.address')
-      .trim()
-      .isLength({ min: 10 })
-      .withMessage('Address must be at least 10 characters'),
-    
-    body('location.city')
-      .trim()
-      .isLength({ min: 2 })
-      .withMessage('City is required'),
-    
-    body('location.state')
-      .trim()
-      .isLength({ min: 2 })
-      .withMessage('State is required'),
-    
-    body('location.pincode')
-      .isPostalCode('IN')
-      .withMessage('Please provide a valid Indian pincode'),
-    
-    body('sports')
-      .isArray({ min: 1 })
-      .withMessage('At least one sport must be specified'),
-    
-    body('sports.*')
-      .isIn(['badminton', 'tennis', 'football', 'cricket', 'basketball', 'squash', 'table_tennis', 'volleyball'])
-      .withMessage('Invalid sport specified'),
-    
-    body('pricing.hourly')
-      .isFloat({ min: 0 })
-      .withMessage('Hourly pricing must be a positive number'),
-    
-    body('availability.openTime')
-      .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-      .withMessage('Open time must be in HH:MM format'),
-    
-    body('availability.closeTime')
-      .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-      .withMessage('Close time must be in HH:MM format'),
-    
-    body('amenities')
-      .optional()
-      .isArray()
-      .withMessage('Amenities must be an array')
-  ];
-};
-
-// Booking validation rules
-const bookingCreationRules = () => {
-  return [
-    body('venueId')
-      .isMongoId()
-      .withMessage('Valid venue ID is required'),
-    
-    body('date')
-      .isISO8601()
-      .withMessage('Valid date is required')
-      .custom((value) => {
-        const bookingDate = new Date(value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (bookingDate < today) {
-          throw new Error('Booking date cannot be in the past');
-        }
-        
-        const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + 90); // 90 days advance booking
-        if (bookingDate > maxDate) {
-          throw new Error('Booking date cannot be more than 90 days in advance');
-        }
-        
-        return true;
-      }),
-    
-    body('timeSlot.start')
-      .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-      .withMessage('Start time must be in HH:MM format'),
-    
-    body('timeSlot.end')
-      .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-      .withMessage('End time must be in HH:MM format')
-      .custom((value, { req }) => {
-        const startTime = req.body.timeSlot?.start;
-        if (startTime && value <= startTime) {
-          throw new Error('End time must be after start time');
-        }
-        return true;
-      }),
-    
-    body('sport')
-      .isIn(['badminton', 'tennis', 'football', 'cricket', 'basketball', 'squash', 'table_tennis', 'volleyball'])
-      .withMessage('Invalid sport specified')
-  ];
-};
-
-// Query parameter validation
-const paginationRules = () => {
-  return [
-    query('page')
-      .optional()
-      .isInt({ min: 1 })
-      .withMessage('Page must be a positive integer'),
-    
-    query('limit')
-      .optional()
-      .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100')
-  ];
-};
-
-const venueSearchRules = () => {
-  return [
-    ...paginationRules(),
-    
-    query('location')
-      .optional()
-      .trim()
-      .isLength({ min: 2 })
-      .withMessage('Location must be at least 2 characters'),
-    
-    query('sport')
-      .optional()
-      .isIn(['badminton', 'tennis', 'football', 'cricket', 'basketball', 'squash', 'table_tennis', 'volleyball'])
-      .withMessage('Invalid sport filter'),
-    
-    query('minPrice')
-      .optional()
-      .isFloat({ min: 0 })
-      .withMessage('Minimum price must be a positive number'),
-    
-    query('maxPrice')
-      .optional()
-      .isFloat({ min: 0 })
-      .withMessage('Maximum price must be a positive number'),
-    
-    query('sortBy')
-      .optional()
-      .isIn(['name', 'rating', 'price', 'createdAt'])
-      .withMessage('Invalid sort field'),
-    
-    query('sortOrder')
-      .optional()
-      .isIn(['asc', 'desc'])
-      .withMessage('Sort order must be asc or desc')
-  ];
-};
-
-// Parameter validation
-const mongoIdRules = (paramName = 'id') => {
-  return [
-    param(paramName)
-      .isMongoId()
-      .withMessage(`Valid ${paramName} is required`)
-  ];
-};
-
-// Password reset validation
-const passwordResetRules = () => {
-  return [
-    body('token')
-      .notEmpty()
-      .withMessage('Reset token is required'),
-    
-    body('newPassword')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters long')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-      .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number')
-  ];
-};
-
-// Email verification rules
-const emailVerificationRules = () => {
-  return [
-    body('token')
-      .notEmpty()
-      .withMessage('Verification token is required')
-  ];
-};
-
-// Review validation rules
-const reviewRules = () => {
-  return [
-    body('rating')
-      .isInt({ min: 1, max: 5 })
-      .withMessage('Rating must be between 1 and 5'),
-    
-    body('comment')
-      .optional()
-      .trim()
-      .isLength({ max: 500 })
-      .withMessage('Comment cannot exceed 500 characters')
-  ];
-};
+// Email verification validation
+const validateEmailVerification = [
+  body('token')
+    .notEmpty()
+    .withMessage('Verification token is required'),
+  
+  handleValidationErrors
+];
 
 module.exports = {
-  handleValidationErrors,
-  userRegistrationRules,
-  userLoginRules,
-  userUpdateRules,
-  venueCreationRules,
-  bookingCreationRules,
-  paginationRules,
-  venueSearchRules,
-  mongoIdRules,
-  passwordResetRules,
-  emailVerificationRules,
-  reviewRules
+  validateSignup,
+  validateLogin,
+  validateEmailVerification
 };

@@ -1,6 +1,7 @@
 // frontend/src/pages/auth/EmailVerification.js
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { authService } from '../../services/authService';
 import './EmailVerification.css';
 
 const EmailVerification = () => {
@@ -47,9 +48,20 @@ const EmailVerification = () => {
     e.preventDefault();
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (resendTimer > 0) return;
-    setResendTimer(30); // start cooldown
+    
+    try {
+      setError('');
+      await authService.resendVerificationEmail(email);
+      setResendTimer(30); // start cooldown
+      
+      // Show success message briefly
+      setError('Verification code sent successfully!');
+      setTimeout(() => setError(''), 3000);
+    } catch (error) {
+      setError(error.response?.data?.error || 'Failed to resend code. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -65,11 +77,40 @@ const EmailVerification = () => {
       return;
     }
 
-    // Demo only: pretend verification succeeds
     try {
       setSubmitting(true);
-      await new Promise((r) => setTimeout(r, 600));
-      navigate('/');
+      setError('');
+
+      // Call the backend API to verify the email
+      const response = await authService.verifyEmail(code);
+      
+      if (response.data.success) {
+        // Store the token if provided
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+        }
+
+        // Navigate to dashboard or home page
+        navigate('/', { 
+          replace: true,
+          state: { 
+            message: 'Email verified successfully! Welcome to QuickCourt!' 
+          }
+        });
+      } else {
+        setError(response.data.error || 'Verification failed');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      
+      if (error.response?.status === 400) {
+        setError(error.response.data.error || 'Invalid or expired verification code');
+      } else if (error.response?.status === 429) {
+        setError('Too many attempts. Please try again later.');
+      } else {
+        setError('Verification failed. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -107,7 +148,11 @@ const EmailVerification = () => {
             ))}
           </div>
 
-          {error && <div className="error-text">{error}</div>}
+          {error && (
+            <div className={`error-text ${error.includes('successfully') ? 'success-text' : ''}`}>
+              {error}
+            </div>
+          )}
 
           <button className="verify-btn" onClick={handleSubmit} disabled={submitting}>
             {submitting ? 'Verifying...' : 'Verify & Continue'}
