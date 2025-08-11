@@ -4,106 +4,77 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Name is required'],
+    required: [true, 'Please add a name'],
     trim: true,
-    maxlength: [50, 'Name cannot exceed 50 characters']
+    maxlength: [50, 'Name cannot be more than 50 characters']
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: [true, 'Please add an email'],
     unique: true,
     lowercase: true,
-    trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
+    match: [
+      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+      'Please add a valid email'
+    ]
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
-    select: false // Don't include password in queries by default
-  },
-  phone: {
-    type: String,
-    trim: true,
-    validate: {
-      validator: function(phone) {
-        return !phone || /^[+]?[1-9][\d\s-()]{7,15}$/.test(phone);
-      },
-      message: 'Please provide a valid phone number'
-    }
+    required: [true, 'Please add a password'],
+    minlength: 6,
+    select: false
   },
   role: {
     type: String,
     enum: ['user', 'facility_owner', 'admin'],
     default: 'user'
   },
+  phoneNumber: {
+    type: String,
+    sparse: true
+  },
   avatar: {
     type: String,
-    default: null
+    default: ''
   },
-  isVerified: {
+  isEmailVerified: {
     type: Boolean,
     default: false
+  },
+  emailVerificationCode: {
+    type: String
+  },
+  emailVerificationExpire: {
+    type: Date
+  },
+  resetPasswordToken: {
+    type: String
+  },
+  resetPasswordExpire: {
+    type: Date
   },
   isActive: {
     type: Boolean,
     default: true
   },
-  preferences: {
-    sports: [{
-      type: String,
-      enum: ['badminton', 'tennis', 'football', 'cricket', 'basketball', 'squash', 'table_tennis', 'volleyball']
-    }],
-    location: {
-      type: String,
-      trim: true
-    },
-    notifications: {
-      email: { type: Boolean, default: true },
-      sms: { type: Boolean, default: false },
-      push: { type: Boolean, default: true }
-    }
+  lastLogin: {
+    type: Date
   },
-  profile: {
-    dateOfBirth: Date,
-    gender: {
-      type: String,
-      enum: ['male', 'female', 'other']
-    },
-    bio: {
-      type: String,
-      maxlength: [500, 'Bio cannot exceed 500 characters']
-    },
-    emergencyContact: {
-      name: String,
-      phone: String,
-      relation: String
-    }
+  dateOfBirth: {
+    type: Date
   },
-  stats: {
-    totalBookings: { type: Number, default: 0 },
-    completedBookings: { type: Number, default: 0 },
-    cancelledBookings: { type: Number, default: 0 },
-    totalSpent: { type: Number, default: 0 },
-    favoriteVenues: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Venue' }]
-  },
-  emailVerificationToken: String,
-  emailVerificationExpires: Date,
-  passwordResetToken: String,
-  passwordResetExpires: Date,
-  lastLogin: Date,
-  lastPasswordChange: Date
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other']
+  }
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true
 });
 
-// Indexes for better query performance
+// Indexes for performance
 userSchema.index({ email: 1 });
-userSchema.index({ role: 1 });
-userSchema.index({ isActive: 1 });
-userSchema.index({ 'preferences.location': 1 });
+userSchema.index({ emailVerificationCode: 1 });
+userSchema.index({ resetPasswordToken: 1 });
 
 // Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {
@@ -112,7 +83,6 @@ userSchema.pre('save', async function(next) {
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
-    this.lastPasswordChange = new Date();
     next();
   } catch (error) {
     next(error);

@@ -1,21 +1,33 @@
 const express = require('express');
 const router = express.Router();
 
+// Import controllers and middleware
+const authController = require('../controllers/authController');
+// const auth = require('../middleware/auth');
+const { 
+  validateSignup, 
+  validateLogin, 
+  validateEmailVerification
+} = require('../middleware/validation');
+
+// Public routes
+router.post('/signup', authController.signup);
+router.post('/login', authController.login);
+router.post('/verify-email', authController.verifyEmail);
+
 // Basic test route
 router.get('/test', (req, res) => {
   res.json({
     success: true,
-    message: 'Auth routes working'
+    message: 'Auth routes working',
+    timestamp: new Date().toISOString()
   });
 });
 
-// Placeholder routes (commented out until controllers are ready)
-// const authController = require('../controllers/authController');
-// router.post('/register', authController.register);
-// router.post('/login', authController.login);
+// Additional routes (uncomment when ready)
 // router.post('/logout', authController.logout);
 // router.post('/forgot-password', authController.forgotPassword);
 // router.post('/reset-password', authController.resetPassword);
-// router.post('/verify-email', authController.verifyEmail);
+// router.get('/me', auth, authController.getMe);
 
 module.exports = router;
