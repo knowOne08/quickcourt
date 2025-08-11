@@ -29,9 +29,26 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+    if (error.response) {
+      // Handle specific status codes
+      switch (error.response.status) {
+        case 401:
+          // Unauthorized - clear token and redirect to login
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          break;
+        case 500:
+          // Log server errors for debugging
+          console.error('Server Error:', {
+            endpoint: error.config.url,
+            method: error.config.method,
+            data: error.response.data
+          });
+          break;
+        default:
+          // Log other errors
+          console.error(`HTTP Error ${error.response.status}:`, error.response.data);
+      }
     }
     return Promise.reject(error);
   }

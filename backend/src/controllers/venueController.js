@@ -23,7 +23,10 @@ exports.getAllVenues = async (req, res) => {
     } = req.query;
 
     // Build query
-    const query = { status: 'active', isApproved: true };
+    const query = {};  // Removing initial filters for testing
+
+    // Log the incoming request
+    console.log('Venue search params:', req.query);
 
     // Location filter
     if (city) {
@@ -32,8 +35,11 @@ exports.getAllVenues = async (req, res) => {
 
     // Sport filter
     if (sport) {
-      query.sports = { $in: [sport] };
+      query.sports = sport; // Simplified sport query for testing
     }
+
+    // Log the constructed query
+    console.log('MongoDB query:', query);
 
     // Price filter
     if (minPrice || maxPrice) {
@@ -358,7 +364,7 @@ exports.getVenueAvailability = async (req, res) => {
 
     // Calculate availability for each court
     const availability = courts.map(court => {
-      const courtBookings = bookings.filter(booking => 
+      const courtBookings = bookings.filter(booking =>
         booking.court.toString() === court._id.toString()
       );
 

@@ -1,60 +1,57 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const logger = require('../utils/logger');
+const AppError = require('../utils/AppError');
+const catchAsync = require('../utils/catchAsync');
 
 // Protect middleware - checks if user is authenticated
-exports.protect = async (req, res, next) => {
+exports.protect = catchAsync(async (req, res, next) => {
+  // 1) Getting token and check if it's there
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    throw new AppError('You are not logged in! Please log in to get access.', 401);
+  }
+
   try {
-    // 1) Getting token and check if it's there
-    let token;
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
-
-    if (!token) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'You are not logged in! Please log in to get access.'
-      });
-    }
-
-    // 2) Verification token
+    // 2) Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 3) Check if user still exists
-    const currentUser = await User.findById(decoded.id);
+    const currentUser = await User.findById(decoded.id).select('+password');
+
     if (!currentUser) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'The user belonging to this token does no longer exist.'
-      });
+      throw new AppError('The user belonging to this token no longer exists.', 401);
     }
 
     // 4) Check if user changed password after the token was issued
-    if (currentUser.changedPasswordAfter && currentUser.changedPasswordAfter(decoded.iat)) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'User recently changed password! Please log in again.'
-      });
+    if (currentUser.passwordChangedAt &&
+      currentUser.changedPasswordAfter(decoded.iat)) {
+      throw new AppError('User recently changed password! Please log in again.', 401);
     }
 
-    // 5) Check if user account is active
-    if (currentUser.status !== 'active') {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Your account has been suspended. Please contact support.'
-      });
-    }
-
-    // Grant access to protected route
+    // 5) Set user in request
     req.user = currentUser;
     next();
   } catch (error) {
-    return res.status(401).json({
-      status: 'error',
-      message: 'Invalid token. Please log in again!'
-    });
+    if (error.name === 'JsonWebTokenError') {
+      throw new AppError('Invalid token. Please log in again.', 401);
+    }
+    if (error.name === 'TokenExpiredError') {
+      throw new AppError('Your token has expired. Please log in again.', 401);
+    }
+    throw error;
   }
+});
+next();
+  } catch (error) {
+  return res.status(401).json({
+    status: 'error',
+    message: 'Invalid token. Please log in again!'
+  });
+}
 };
 
 // RestrictTo middleware - checks user roles

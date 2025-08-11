@@ -19,26 +19,24 @@ const Navbar = () => {
         <Link to="/" className="navbar-brand">
           <h2>QuickCourt</h2>
         </Link>
-        
+
         <div className="navbar-menu">
-          <Link to="/venues" className="navbar-link">Venues</Link>
-          
           {isAuthenticated ? (
             <div className="navbar-user">
-              <span>Welcome, {user?.fullName}</span>
-              
+              <span>Welcome, {user?.name}</span>
+
               {user?.role === 'admin' && (
                 <Link to="/admin/dashboard" className="navbar-link">Admin</Link>
               )}
-              
+
               {user?.role === 'facility_owner' && (
                 <Link to="/owner/dashboard" className="navbar-link">Dashboard</Link>
               )}
-              
+
               {user?.role === 'user' && (
                 <Link to="/my-bookings" className="navbar-link">My Bookings</Link>
               )}
-              
+
               <Link to="/profile" className="navbar-link">Profile</Link>
               <button onClick={handleLogout} className="logout-btn">Logout</button>
             </div>

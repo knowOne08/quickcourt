@@ -45,7 +45,19 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
 
     if (result.success) {
-      navigate('/');
+      // Redirect based on user role
+      switch (result.user.role) {
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'facility_owner':
+          navigate('/owner/dashboard');
+          break;
+        case 'user':
+        default:
+          navigate('/');
+          break;
+      }
     } else {
       const msg = result.message || '';
       if (/email/i.test(msg)) setErrors((prev) => ({ ...prev, email: msg }));

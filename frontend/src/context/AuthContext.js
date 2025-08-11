@@ -8,7 +8,8 @@ const initialState = {
   user: null,
   isAuthenticated: false,
   loading: true,
-  token: localStorage.getItem('token')
+  token: localStorage.getItem('token'),
+  role: null
 };
 
 const authReducer = (state, action) => {
@@ -19,7 +20,8 @@ const authReducer = (state, action) => {
         user: action.payload.user,
         token: action.payload.token,
         isAuthenticated: true,
-        loading: false
+        loading: false,
+        role: action.payload.user.role
       };
     case 'LOGOUT':
       return {
@@ -34,7 +36,8 @@ const authReducer = (state, action) => {
         ...state,
         user: action.payload,
         isAuthenticated: true,
-        loading: false
+        loading: false,
+        role: action.payload.role
       };
     case 'LOAD_USER_FAIL':
       return {
@@ -108,16 +111,36 @@ export const AuthProvider = ({ children }) => {
   const loadUser = async () => {
     try {
       const response = await authService.getCurrentUser();
+
+      if (!response?.data?.user) {
+        throw new Error('Invalid response format');
+      }
+
       dispatch({ type: 'LOAD_USER_SUCCESS', payload: response.data.user });
     } catch (error) {
-      // Only clear token on 401; for other errors keep session
-      const status = error.response?.status;
-      if (status === 401) {
-        localStorage.removeItem('token');
-        dispatch({ type: 'LOAD_USER_FAIL' });
+      console.error('Error loading user:', error);
+
+      // Handle different error types
+      if (error.response) {
+        // Server responded with error
+        const status = error.response.status;
+        if (status === 401) {
+          localStorage.removeItem('token');
+          dispatch({ type: 'LOAD_USER_FAIL' });
+        } else if (status === 500) {
+          console.error('Server error:', error.response.data);
+          dispatch({ type: 'SET_ERROR', payload: 'Server error occurred. Please try again later.' });
+        }
+      } else if (error.request) {
+        // Request made but no response
+        console.error('No response received:', error.request);
+        dispatch({ type: 'SET_ERROR', payload: 'No response from server. Please check your connection.' });
       } else {
-        dispatch({ type: 'SET_LOADING', payload: false });
+        // Other errors
+        console.error('Error:', error.message);
+        dispatch({ type: 'SET_ERROR', payload: 'An unexpected error occurred.' });
       }
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
