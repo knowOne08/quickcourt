@@ -2,13 +2,13 @@
 
 .home-page {
   min-height: calc(100vh - 120px);
-  background-color: #f8f9fa;
+  background-color: var(--light-gray);
 }
 
 /* Header Section */
 .header-section {
-  background-color: white;
-  border: 2px solid #e0e0e0;
+  background-color: var(--white);
+  border: 2px solid var(--border-gray);
   border-radius: 12px;
   margin: 20px;
   padding: 30px;
@@ -31,6 +31,7 @@
 
 .location-icon {
   font-size: 1.2rem;
+  color: var(--odoo-primary);
 }
 
 .location-dropdown {
@@ -38,11 +39,16 @@
   font-size: 1rem;
   font-weight: 500;
   padding: 8px 12px;
-  background-color: white;
-  color: #333;
-  border: 1px solid #ddd;
+  background-color: var(--white);
+  color: var(--odoo-primary);
+  border: 1px solid var(--border-gray);
   border-radius: 4px;
   cursor: pointer;
+}
+
+.location-dropdown:focus {
+  outline: none;
+  border-color: var(--odoo-primary);
 }
 
 .search-section {
@@ -52,14 +58,14 @@
 .search-section h1 {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--odoo-primary);
   margin-bottom: 12px;
   line-height: 1.2;
 }
 
 .search-section p {
   font-size: 1rem;
-  color: #666;
+  color: var(--odoo-gray);
   line-height: 1.5;
   margin: 0;
 }
@@ -67,8 +73,8 @@
 .map-placeholder {
   width: 200px;
   height: 150px;
-  background-color: #f0f0f0;
-  border: 2px dashed #ccc;
+  background-color: var(--light-gray);
+  border: 2px dashed var(--border-gray);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -77,15 +83,21 @@
 }
 
 .map-content {
-  color: #999;
+  color: var(--odoo-gray);
   font-weight: 500;
+}
+
+.venue-data{
+  display: flex;
+  justify-content: space-between;
+  align-items:center;
 }
 
 /* Book Venues Section */
 .book-venues-section {
   margin: 20px;
-  background-color: white;
-  border: 2px solid #e0e0e0;
+  background-color: var(--white);
+  border: 2px solid var(--border-gray);
   border-radius: 12px;
   padding: 30px;
 }
@@ -100,12 +112,12 @@
 .section-header h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--odoo-primary);
   margin: 0;
 }
 
 .see-all-link {
-  color: #007bff;
+  color: var(--odoo-secondary);
   text-decoration: none;
   font-weight: 500;
   font-size: 0.95rem;
@@ -113,6 +125,7 @@
 
 .see-all-link:hover {
   text-decoration: underline;
+  color: var(--odoo-primary);
 }
 
 .venues-grid {
@@ -123,21 +136,21 @@
 }
 
 .venue-card {
-  background-color: white;
-  border: 1px solid #e0e0e0;
+  background-color: var(--white);
+  border: 1px solid var(--border-gray);
   border-radius: 8px;
   overflow: hidden;
   transition: box-shadow 0.3s ease;
 }
 
 .venue-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(113, 75, 103, 0.15);
 }
 
 .venue-image {
   position: relative;
   height: 160px;
-  background-color: #f0f0f0;
+  background-color: var(--light-gray);
   overflow: hidden;
 }
 
@@ -152,7 +165,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #999;
+  color: var(--odoo-gray);
   font-weight: 500;
   background-color: rgba(255, 255, 255, 0.9);
   padding: 8px 16px;
@@ -166,7 +179,7 @@
 .venue-info h3 {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--odoo-primary);
   margin: 0 0 8px 0;
 }
 
@@ -174,22 +187,21 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 8px;
 }
 
 .stars {
-  color: #ffa500;
+  color: var(--gold-partner);
   font-size: 0.9rem;
 }
 
 .review-count {
-  color: #666;
+  color: var(--odoo-gray);
   font-size: 0.85rem;
 }
 
 .venue-location {
-  color: #666;
-  font-size: 0.9rem;
+  color: var(--odoo-gray);
+  font-size: 0.7rem;
   margin: 0 0 12px 0;
 }
 
@@ -201,12 +213,12 @@
 }
 
 .amenity-tag {
-  background-color: #f8f9fa;
-  color: #666;
+  background-color: var(--light-gray);
+  color: var(--odoo-gray);
   font-size: 0.8rem;
   padding: 4px 8px;
   border-radius: 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-gray);
 }
 
 .venue-actions {
@@ -216,14 +228,14 @@
 }
 
 .price-range {
-  color: #2c3e50;
+  color: var(--odoo-primary);
   font-weight: 600;
   font-size: 0.9rem;
 }
 
 .book-button {
-  background-color: #007bff;
-  color: white;
+  background-color:  #714B67;
+  color: var(--white);
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
@@ -234,7 +246,7 @@
 }
 
 .book-button:hover {
-  background-color: #0056b3;
+  background-color: #016169;
 }
 
 .pagination {
@@ -246,9 +258,9 @@
 .pagination-btn {
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
-  background-color: white;
-  color: #666;
+  border: 1px solid var(--border-gray);
+  background-color: var(--white);
+  color: var(--odoo-gray);
   border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
@@ -256,16 +268,16 @@
 }
 
 .pagination-btn:hover {
-  background-color: #007bff;
-  color: white;
-  border-color: #007bff;
+  background-color: var(--odoo-primary);
+  color: var(--white);
+  border-color: var(--odoo-primary);
 }
 
 /* Popular Sports Section */
 .popular-sports-section {
   margin: 20px;
-  background-color: white;
-  border: 2px solid #e0e0e0;
+  background-color: var(--white);
+  border: 2px solid var(--border-gray);
   border-radius: 12px;
   padding: 30px;
 }
@@ -273,7 +285,7 @@
 .popular-sports-section h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--odoo-primary);
   margin-bottom: 24px;
 }
 
@@ -287,10 +299,13 @@
   text-align: center;
   cursor: pointer;
   transition: transform 0.3s ease;
+  padding: 12px;
+  border-radius: 8px;
 }
 
 .sport-card:hover {
   transform: translateY(-4px);
+  background-color: var(--light-gray);
 }
 
 .sport-image {
@@ -299,7 +314,8 @@
   border-radius: 12px;
   overflow: hidden;
   margin: 0 auto 12px;
-  background-color: #f0f0f0;
+  background-color: var(--light-gray);
+  border: 1px solid var(--border-gray);
 }
 
 .sport-image img {
@@ -311,7 +327,7 @@
 .sport-card h3 {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #2c3e50;
+  color: var(--odoo-primary);
   margin: 0;
 }
 
@@ -322,9 +338,17 @@
     gap: 20px;
   }
 
+  /* Hide image section on mobile */
   .map-placeholder {
-    width: 100%;
-    height: 120px;
+    display: none;
+  }
+
+  .search-section h1 {
+    font-size: 1.5rem;
+  }
+
+  .search-section p {
+    font-size: 0.9rem;
   }
 
   .venues-grid {
@@ -338,5 +362,16 @@
   .sport-image {
     width: 80px;
     height: 80px;
+  }
+
+  .sport-card h3 {
+    font-size: 0.8rem;
+  }
+
+  .header-section,
+  .book-venues-section,
+  .popular-sports-section {
+    margin: 10px;
+    padding: 20px;
   }
 }
