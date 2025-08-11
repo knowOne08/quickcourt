@@ -1,0 +1,392 @@
+/* frontend/src/styles/responsive.css */
+
+/* Mobile Navigation */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 12px 0;
+  }
+  
+  .navbar-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+  
+  .navbar-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+  
+  .nav-dropdown {
+    position: relative;
+  }
+  
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--white);
+    border: 2px solid var(--border-gray);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    z-index: 1000;
+  }
+  
+  .dropdown-menu a {
+    display: block;
+    padding: 12px 16px;
+    color: var(--odoo-gray);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-gray);
+  }
+  
+  .dropdown-menu a:last-child {
+    border-bottom: none;
+  }
+  
+  .dropdown-menu a:hover {
+    background-color: var(--light-gray);
+    color: var(--odoo-primary);
+  }
+}
+
+/* Mobile Home Page */
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 60px 0 40px;
+    min-height: 500px;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem;
+    text-align: center;
+  }
+  
+  .hero-description {
+    font-size: 1.125rem;
+    text-align: center;
+  }
+  
+  .book-venues-btn {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .venues-section {
+    padding: 60px 20px;
+  }
+  
+  .venues-carousel {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Mobile Venue Lists */
+@media (max-width: 768px) {
+  .venues-page {
+    padding: 20px;
+  }
+  
+  .venues-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  
+  .venues-header h1 {
+    font-size: 2rem;
+  }
+  
+  .venues-filters {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 300px;
+    height: 100vh;
+    background-color: var(--white);
+    z-index: 1000;
+    padding: 20px;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+    transition: right 0.3s ease;
+    overflow-y: auto;
+  }
+  
+  .venues-filters.open {
+    right: 0;
+  }
+  
+  .filter-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+  }
+  
+  .filter-overlay.show {
+    display: block;
+  }
+  
+  .mobile-filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--odoo-primary);
+    color: var(--white);
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+  
+  .venues-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile Booking Page */
+@media (max-width: 768px) {
+  .booking-page {
+    padding: 20px;
+  }
+  
+  .booking-container {
+    max-width: 100%;
+  }
+  
+  .booking-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  
+  .booking-header h1 {
+    font-size: 1.75rem;
+    margin-bottom: 8px;
+  }
+  
+  .booking-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .booking-section {
+    background-color: var(--white);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .booking-section label {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--odoo-primary);
+  }
+  
+  .court-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .court-option {
+    padding: 16px;
+    border: 2px solid var(--border-gray);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .court-option.selected {
+    border-color: var(--odoo-primary);
+    background-color: rgba(113, 75, 103, 0.1);
+  }
+  
+  .booking-summary {
+    position: sticky;
+    bottom: 0;
+    background-color: var(--white);
+    padding: 20px;
+    border-top: 2px solid var(--border-gray);
+    margin-top: 32px;
+  }
+}
+
+/* Mobile Dashboard */
+@media (max-width: 768px) {
+  .owner-dashboard,
+  .admin-dashboard {
+    padding: 20px;
+  }
+  
+  .dashboard-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 2rem;
+  }
+  
+  .kpi-section,
+  .global-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  
+  .kpi-card,
+  .stat-card {
+    padding: 20px;
+  }
+  
+  .charts-section,
+  .admin-charts-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .chart-container {
+    height: 300px;
+  }
+  
+  .chart-container.full-width {
+    height: 350px;
+  }
+  
+  .bookings-table {
+    overflow-x: auto;
+  }
+  
+  .bookings-table table {
+    min-width: 600px;
+  }
+}
+
+/* Mobile Forms */
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 20px;
+    max-width: 100%;
+  }
+  
+  .auth-form {
+    padding: 32px 24px;
+  }
+  
+  .auth-title {
+    font-size: 1.75rem;
+    margin-bottom: 24px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-input {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+  
+  .btn {
+    padding: 14px 24px;
+    font-size: 1rem;
+    width: 100%;
+  }
+  
+  .auth-links {
+    text-align: center;
+    margin-top: 24px;
+  }
+}
+
+/* Mobile Profile Page */
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 20px;
+  }
+  
+  .profile-container {
+    max-width: 100%;
+  }
+  
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+  
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .profile-tabs {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .tab-button {
+    border-radius: 0;
+    border-bottom: 1px solid var(--border-gray);
+  }
+  
+  .tab-button:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+  
+  .tab-button:last-child {
+    border-radius: 0 0 8px 8px;
+    border-bottom: none;
+  }
+  
+  .bookings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile Utility Classes */
+@media (max-width: 768px) {
+  .mobile-hide {
+    display: none !important;
+  }
+  
+  .mobile-show {
+    display: block !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-gap-small {
+    gap: 12px !important;
+  }
+  
+  .mobile-padding {
+    padding: 20px !important;
+  }
+  
+  .mobile-margin-bottom {
+    margin-bottom: 20px !important;
+  }
+}
