@@ -106,6 +106,17 @@
   text-align: center;
 }
 
+/* Inline field errors */
+.input-error {
+  border-color: var(--error, #dc2626) !important;
+}
+.field-error {
+  display: block;
+  color: var(--error, #dc2626);
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
 /* Password field with eye toggle */
 .password-field {
   position: relative;

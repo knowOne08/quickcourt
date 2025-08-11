@@ -13,30 +13,44 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({ email: '', password: '' });
 
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
     setError('');
+  };
+
+  const validate = () => {
+    const next = { email: '', password: '' };
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) next.email = 'Email is required';
+    else if (!emailRe.test(formData.email.trim())) next.email = 'Enter a valid email address';
+    if (!formData.password) next.password = 'Password is required';
+    setErrors(next);
+    return !next.email && !next.password;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    if (!validate()) return;
+    setLoading(true);
 
     const result = await login(formData.email, formData.password);
 
     if (result.success) {
       navigate('/');
     } else {
-      setError(result.message);
+      const msg = result.message || '';
+      if (/email/i.test(msg)) setErrors((prev) => ({ ...prev, email: msg }));
+      else if (/password/i.test(msg) || /credentials/i.test(msg)) setErrors((prev) => ({ ...prev, password: msg }));
+      else setError(msg);
     }
 
     setLoading(false);
@@ -62,7 +76,10 @@ const Login = () => {
                 onChange={handleChange}
                 required
                 placeholder="Enter your email"
+                className={errors.email ? 'input-error' : ''}
+                aria-invalid={!!errors.email}
               />
+              {errors.email && <small className="field-error">{errors.email}</small>}
             </div>
 
             <div className="form-group">
@@ -76,7 +93,10 @@ const Login = () => {
                   onChange={handleChange}
                   required
                   placeholder="Enter your password"
+                  className={errors.password ? 'input-error' : ''}
+                  aria-invalid={!!errors.password}
                 />
+                {errors.password && <small className="field-error">{errors.password}</small>}
                 <button
                   type="button"
                   className="password-toggle-btn"
