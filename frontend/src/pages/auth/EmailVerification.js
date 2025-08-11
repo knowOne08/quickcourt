@@ -1,80 +1,137 @@
 // frontend/src/pages/auth/EmailVerification.js
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import './EmailVerification.css';
 
 const EmailVerification = () => {
-  const [status, setStatus] = useState('verifying'); // verifying, success, error
-  const [message, setMessage] = useState('');
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { verifyEmail } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  const email = searchParams.get('email') || 'user@example.com';
+
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const inputRefs = useRef([]);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleChange = (index, value) => {
+    if (!/^\d?$/.test(value)) return; // allow only a single digit
+
+    const next = [...otp];
+    next[index] = value;
+    setOtp(next);
+    setError('');
+
+    if (value && inputRefs.current[index + 1]) {
+      inputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && inputRefs.current[index - 1]) {
+      inputRefs.current[index - 1].focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!text) return;
+    const arr = text.split('');
+    const next = [...otp];
+    for (let i = 0; i < 6; i++) next[i] = arr[i] || '';
+    setOtp(next);
+    if (inputRefs.current[Math.min(arr.length, 5)]) {
+      inputRefs.current[Math.min(arr.length, 5)].focus();
+    }
+    e.preventDefault();
+  };
+
+  const handleResend = () => {
+    if (resendTimer > 0) return;
+    setResendTimer(30); // start cooldown
+  };
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    
-    if (token) {
-      handleVerification(token);
-    } else {
-      setStatus('error');
-      setMessage('Invalid verification link');
-    }
-  }, [searchParams]);
+    if (resendTimer <= 0) return;
+    const t = setTimeout(() => setResendTimer((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendTimer]);
 
-  const handleVerification = async (token) => {
+  const handleSubmit = async () => {
+    const code = otp.join('');
+    if (code.length !== 6) {
+      setError('Please enter the 6-digit code');
+      return;
+    }
+
+    // Demo only: pretend verification succeeds
     try {
-      const result = await verifyEmail(token);
-      
-      if (result.success) {
-        setStatus('success');
-        setMessage('Email verified successfully! Redirecting to dashboard...');
-        setTimeout(() => {
-          navigate('/');
-        }, 3000);
-      } else {
-        setStatus('error');
-        setMessage(result.message || 'Email verification failed');
-      }
-    } catch (error) {
-      setStatus('error');
-      setMessage('Email verification failed');
+      setSubmitting(true);
+      await new Promise((r) => setTimeout(r, 600));
+      navigate('/');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="email-verification-page">
-      <div className="verification-container">
-        <div className="verification-content">
-          {status === 'verifying' && (
-            <>
-              <div className="verification-icon verifying">⏳</div>
-              <h1>Verifying Email</h1>
-              <p>Please wait while we verify your email address...</p>
-            </>
-          )}
-          
-          {status === 'success' && (
-            <>
-              <div className="verification-icon success">✅</div>
-              <h1>Email Verified!</h1>
-              <p>{message}</p>
-            </>
-          )}
-          
-          {status === 'error' && (
-            <>
-              <div className="verification-icon error">❌</div>
-              <h1>Verification Failed</h1>
-              <p>{message}</p>
-              <button 
-                onClick={() => navigate('/login')} 
-                className="back-btn"
+    <div className="email-verify-page">
+      <div className="verify-card">
+        <div className="verify-left">
+          <img src="https://placehold.co/600x800?text=IMAGE" alt="Verification" />
+        </div>
+        <div className="verify-right">
+          {/* <h2 className="brand">QUICKCOURT</h2> */}
+          <h3 className="title">
+            <span role="img" aria-label="lock">🔒</span> VERIFY YOUR EMAIL
+          </h3>
+          <p className="subtitle">
+            We've sent a code to your email: <span className="email">{email}</span>
+          </p>
+
+          <div className="otp-inputs" onPaste={handlePaste}>
+            {otp.map((d, i) => (
+              <input
+                key={i}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                className="otp-box"
+                value={d}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => handleChange(i, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(i, e)}
+                ref={(el) => (inputRefs.current[i] = el)}
+              />
+            ))}
+          </div>
+
+          {error && <div className="error-text">{error}</div>}
+
+          <button className="verify-btn" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'Verifying...' : 'Verify & Continue'}
+          </button>
+
+          <div className="assist">
+            <small>
+              Didn't receive the code?{' '}
+              <button
+                type="button"
+                className="link-btn"
+                onClick={handleResend}
+                disabled={resendTimer > 0}
               >
-                Back to Login
+                Resend OTP {resendTimer > 0 ? `(${resendTimer}s)` : ''}
               </button>
-            </>
-          )}
+            </small>
+            <small>
+              Wrong email?{' '}
+              <button type="button" className="link-btn" onClick={() => navigate('/signup')}>
+                Edit Email
+              </button>
+            </small>
+          </div>
         </div>
       </div>
     </div>

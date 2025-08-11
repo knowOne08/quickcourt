@@ -87,11 +87,11 @@
   .navbar-container {
     padding: 0 16px;
   }
-  
+
   .navbar-menu {
     gap: 16px;
   }
-  
+
   .navbar-user span {
     display: none;
   }
