@@ -11,7 +11,7 @@ const Footer = () => {
           <h3>QuickCourt</h3>
           <p>Your premier platform for booking sports venues and connecting with fellow athletes.</p>
         </div>
-        
+
         <div className="footer-section">
           <h4>Quick Links</h4>
           <ul>
@@ -21,7 +21,7 @@ const Footer = () => {
             <li><Link to="/help">Help Center</Link></li>
           </ul>
         </div>
-        
+
         <div className="footer-section">
           <h4>For Business</h4>
           <ul>
@@ -30,7 +30,7 @@ const Footer = () => {
             <li><Link to="/business">Business Solutions</Link></li>
           </ul>
         </div>
-        
+
         <div className="footer-section">
           <h4>Support</h4>
           <ul>
@@ -40,10 +40,10 @@ const Footer = () => {
           </ul>
         </div>
       </div>
-      
+
       <div className="footer-bottom">
         <div className="footer-container">
-          <p>&copy; 2024 QuickCourt. All rights reserved.</p>
+          <p>&copy; 2025 QuickCourt. All rights reserved.</p>
         </div>
       </div>
     </footer>
