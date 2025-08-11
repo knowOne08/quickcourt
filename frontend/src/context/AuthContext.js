@@ -1,5 +1,5 @@
 // frontend/src/context/AuthContext.js
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { authService } from '../services/authService';
 
 const AuthContext = createContext();
@@ -56,13 +56,53 @@ const authReducer = (state, action) => {
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const tokenTimerRef = useRef(null);
+
+  // Decode JWT payload safely (no external dep)
+  const decodeJwt = (token) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+      return JSON.parse(jsonPayload);
+    } catch {
+      return null;
+    }
+  };
+
+  const isExpired = (token) => {
+    const payload = decodeJwt(token);
+    if (!payload?.exp) return false; // if no exp, assume not expired
+    const nowSec = Math.floor(Date.now() / 1000);
+    return payload.exp <= nowSec;
+  };
+
+  const scheduleExpiryHandler = (token) => {
+    clearTimeout(tokenTimerRef.current);
+    const payload = decodeJwt(token);
+    if (!payload?.exp) return; // nothing to schedule
+    const now = Date.now();
+    const expMs = payload.exp * 1000;
+    const lead = 30 * 1000; // 30s early
+    const delay = Math.max(expMs - now - lead, 0);
+    tokenTimerRef.current = setTimeout(() => {
+      logout();
+    }, delay);
+  };
 
   useEffect(() => {
-    if (state.token) {
+    const token = localStorage.getItem('token');
+    if (token && !isExpired(token)) {
+      dispatch({ type: 'SET_LOADING', payload: true });
       loadUser();
+      scheduleExpiryHandler(token);
     } else {
+      localStorage.removeItem('token');
       dispatch({ type: 'SET_LOADING', payload: false });
     }
+    // cleanup timer on unmount
+    return () => clearTimeout(tokenTimerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadUser = async () => {
@@ -70,8 +110,14 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.getCurrentUser();
       dispatch({ type: 'LOAD_USER_SUCCESS', payload: response.data.user });
     } catch (error) {
-      dispatch({ type: 'LOAD_USER_FAIL' });
-      localStorage.removeItem('token');
+      // Only clear token on 401; for other errors keep session
+      const status = error.response?.status;
+      if (status === 401) {
+        localStorage.removeItem('token');
+        dispatch({ type: 'LOAD_USER_FAIL' });
+      } else {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
     }
   };
 
@@ -79,18 +125,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.login(email, password);
       const { user, token } = response.data;
-      
+
       localStorage.setItem('token', token);
-      dispatch({ 
-        type: 'LOGIN_SUCCESS', 
-        payload: { user, token } 
-      });
-      
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+      scheduleExpiryHandler(token);
+
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Login failed' 
+      return {
+        success: false,
+        message: error.response?.data?.error || error.response?.data?.message || 'Login failed'
       };
     }
   };
@@ -100,15 +144,16 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.signup(userData);
       return { success: true, data: response.data };
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Signup failed' 
+      return {
+        success: false,
+        message: error.response?.data?.error || error.response?.data?.message || 'Signup failed'
       };
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    clearTimeout(tokenTimerRef.current);
     dispatch({ type: 'LOGOUT' });
   };
 
@@ -116,18 +161,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.verifyEmail(token);
       const { user, token: authToken } = response.data;
-      
+
       localStorage.setItem('token', authToken);
-      dispatch({ 
-        type: 'LOGIN_SUCCESS', 
-        payload: { user, token: authToken } 
-      });
-      
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token: authToken } });
+      scheduleExpiryHandler(authToken);
+
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Email verification failed' 
+      return {
+        success: false,
+        message: error.response?.data?.error || error.response?.data?.message || 'Email verification failed'
       };
     }
   };

@@ -1,9 +1,11 @@
 // frontend/src/pages/user/Home.js
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Home.css';
 
 const Home = () => {
   const [selectedLocation, setSelectedLocation] = useState('Ahmedabad');
+  const navigate = useNavigate();
 
   // Mock data for venues
   const mockVenues = [
@@ -121,22 +123,25 @@ const Home = () => {
             <div key={venue.id} className="venue-card">
               <div className="venue-image">
                 <img src={venue.image} alt={venue.name} />
-                <div className="image-placeholder">Image</div>
+
               </div>
               <div className="venue-info">
-                <h3>{venue.name}</h3>
-                <div className="venue-rating">
-                  <span className="stars">⭐ {venue.rating}</span>
-                  <span className="review-count">({venue.reviews})</span>
+                <div className="venue-data">
+                  <h3>{venue.name}</h3>
+                  <div className="venue-rating">
+                    <span className="stars">⭐ {venue.rating}</span>
+                    <span className="review-count">({venue.reviews})</span>
+                  </div>
                 </div>
                 <p className="venue-location">📍 {venue.location}</p>
+
                 <div className="venue-amenities">
                   <span className="amenity-tag">🏸 badminton</span>
                   <span className="amenity-tag">❄️ ac-court</span>
                 </div>
                 <div className="venue-actions">
                   <span className="price-range">{venue.priceRange}</span>
-                  <button className="book-button">Book</button>
+                  <button className="book-button" onClick={() => navigate(`/venue/${venue.id}`)}>View Details</button>
                 </div>
               </div>
             </div>
