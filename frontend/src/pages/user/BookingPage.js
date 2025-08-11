@@ -6,14 +6,14 @@ import BookingCalendar from '../../components/booking/BookingCalendar';
 import TimeSlotSelector from '../../components/booking/TimeSlotSelector';
 import PaymentSection from '../../components/booking/PaymentSection';
 import { venueService } from '../../services/venueService';
-import { bookingService } from '../../services/bookingService';
+import bookingService from '../../services/bookingService';
 import './BookingPage.css';
 
 const BookingPage = () => {
   const { venueId } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  
+
   const [venue, setVenue] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
@@ -50,7 +50,7 @@ const BookingPage = () => {
       setLoading(true);
       const response = await venueService.getVenueById(venueId);
       setVenue(response.data);
-      
+
       // Set first court as default if available
       if (response.data.courts && response.data.courts.length > 0) {
         setSelectedCourt(response.data.courts[0]);
@@ -78,7 +78,7 @@ const BookingPage = () => {
     // Only allow current date and future dates
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     if (date >= today) {
       setSelectedDate(date);
       setSelectedTimeSlot(null);
@@ -90,7 +90,7 @@ const BookingPage = () => {
     const selectedDateTime = new Date(selectedDate);
     const [hours, minutes] = slot.startTime.split(':');
     selectedDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    
+
     if (selectedDateTime > new Date()) {
       setSelectedTimeSlot(slot);
     }
@@ -146,7 +146,7 @@ const BookingPage = () => {
         <div className="booking-form">
           <div className="booking-section">
             <label htmlFor="date-picker">Date</label>
-            <BookingCalendar 
+            <BookingCalendar
               selectedDate={selectedDate}
               onDateChange={handleDateChange}
               minDate={new Date()}
@@ -165,7 +165,7 @@ const BookingPage = () => {
 
           <div className="booking-section">
             <label htmlFor="duration">Duration</label>
-            <select 
+            <select
               id="duration"
               value={duration}
               onChange={(e) => handleDurationChange(parseInt(e.target.value))}
@@ -182,7 +182,7 @@ const BookingPage = () => {
             <label htmlFor="court">Court</label>
             <div className="court-selector">
               {venue.courts?.map(court => (
-                <div 
+                <div
                   key={court._id}
                   className={`court-option ${selectedCourt?._id === court._id ? 'selected' : ''}`}
                   onClick={() => handleCourtChange(court)}
@@ -197,7 +197,7 @@ const BookingPage = () => {
         </div>
 
         <div className="booking-summary">
-          <PaymentSection 
+          <PaymentSection
             totalAmount={totalAmount}
             onContinue={handleContinueToPayment}
             disabled={!selectedDate || !selectedTimeSlot || !selectedCourt}

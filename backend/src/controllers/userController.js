@@ -10,8 +10,16 @@ const bcrypt = require('bcryptjs');
 // @access  Private
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
-    
+    // Make sure we have a user in the request
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    const user = await User.findById(req.user._id).select('-password');
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -19,15 +27,26 @@ const getProfile = async (req, res) => {
       });
     }
 
+    // Return only necessary user data
     res.status(200).json({
       success: true,
-      user
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phoneNumber: user.phoneNumber || '',
+        avatar: user.avatar || '',
+        isEmailVerified: user.isEmailVerified
+      }
     });
   } catch (error) {
     logger.error(`Get profile error: ${error.message}`);
+    logger.error(error.stack);
     res.status(500).json({
       success: false,
-      error: 'Server error'
+      error: 'Server error',
+      message: error.message
     });
   }
 };
@@ -38,7 +57,7 @@ const getProfile = async (req, res) => {
 const getPublicProfile = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).select('name avatar createdAt');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -48,7 +67,7 @@ const getPublicProfile = async (req, res) => {
 
     // Get user's public stats
     const reviewCount = await Review.countDocuments({ user: user._id });
-    
+
     res.status(200).json({
       success: true,
       user: {
@@ -107,7 +126,7 @@ const updateProfile = async (req, res) => {
     });
   } catch (error) {
     logger.error(`Update profile error: ${error.message}`);
-    
+
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -139,7 +158,7 @@ const deleteAccount = async (req, res) => {
 
     // Get user with password
     const user = await User.findById(req.user.id).select('+password');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -182,7 +201,7 @@ const deleteAccount = async (req, res) => {
 const getBookingHistory = async (req, res) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
-    
+
     const query = { user: req.user.id };
     if (status) query.status = status;
 
@@ -249,7 +268,7 @@ const getBookingDetails = async (req, res) => {
 const getFavoriteVenues = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate('favoriteVenues', 'name address city images category pricePerHour rating');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -453,7 +472,7 @@ const updateReview = async (req, res) => {
 
     if (rating) review.rating = rating;
     if (comment !== undefined) review.comment = comment;
-    
+
     await review.save();
 
     const populatedReview = await Review.findById(review._id)
@@ -510,7 +529,7 @@ const deleteReview = async (req, res) => {
 const getPreferences = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('preferences');
-    
+
     const defaultPreferences = {
       notifications: {
         email: true,

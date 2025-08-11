@@ -12,7 +12,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('bookings'); // 'bookings' | 'edit'
 
   // Edit form state
-  const [fullName, setFullName] = useState(user?.fullName || '');
+  const [fullName, setFullName] = useState(user?.fullName || user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -26,13 +26,16 @@ const Profile = () => {
 
   useEffect(() => {
     // keep form in sync when user loads/changes
-    setFullName(user?.fullName || '');
+    setFullName(user?.fullName || user?.name || '');
     setEmail(user?.email || '');
   }, [user]);
 
+  // Load bookings only when the Bookings tab is opened
   useEffect(() => {
-    loadUserBookings();
-  }, [loadUserBookings]);
+    if (activeTab === 'bookings') {
+      loadUserBookings();
+    }
+  }, [activeTab, loadUserBookings]);
 
   const isEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
 
@@ -79,7 +82,7 @@ const Profile = () => {
     }
     try {
       setSaving(true);
-      await authService.updateProfile({ fullName, email });
+      await authService.updateProfile({ name: fullName, email });
       if (oldPassword && newPassword) {
         await authService.changePassword(oldPassword, newPassword);
       }
@@ -107,8 +110,8 @@ const Profile = () => {
         {/* Sidebar */}
         <aside className="profile-sidebar">
           <div className="profile-avatar" />
-          <div className="profile-name">{user?.fullName || 'User'}</div>
-          <div style={{ fontSize: '.9rem' }}>{user?.phone || ''}</div>
+          <div className="profile-name">{user?.fullName || user?.name || 'User'}</div>
+          <div style={{ fontSize: '.9rem' }}>{user?.phoneNumber || ''}</div>
           <div className="profile-email">{user?.email}</div>
 
           <div className="sidebar-nav">

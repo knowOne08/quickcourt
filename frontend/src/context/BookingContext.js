@@ -1,8 +1,8 @@
 // frontend/src/context/BookingContext.js
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { bookingService } from '../services/bookingService';
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import bookingService from '../services/bookingService';
 
-const BookingContext = createContext();
+const BookingContext = createContext(null);
 
 const initialState = {
   currentBooking: null,
@@ -29,6 +29,36 @@ const bookingReducer = (state, action) => {
         ...state,
         error: action.payload,
         loading: false
+      };
+    case 'SET_USER_BOOKINGS':
+      return {
+        ...state,
+        userBookings: action.payload,
+        loading: false,
+        error: null
+      };
+    case 'ADD_BOOKING':
+      return {
+        ...state,
+        userBookings: [action.payload, ...state.userBookings],
+        currentBooking: action.payload
+      };
+    case 'CANCEL_BOOKING':
+      return {
+        ...state,
+        userBookings: state.userBookings.map(booking =>
+          booking._id === action.payload ? { ...booking, status: 'cancelled' } : booking
+        )
+      };
+    case 'UPDATE_BOOKING':
+      return {
+        ...state,
+        userBookings: state.userBookings.map(booking =>
+          booking._id === action.payload._id ? action.payload : booking
+        ),
+        currentBooking: state.currentBooking?._id === action.payload._id
+          ? action.payload
+          : state.currentBooking
       };
     case 'SET_SELECTED_VENUE':
       return {
@@ -60,34 +90,6 @@ const bookingReducer = (state, action) => {
         ...state,
         currentBooking: action.payload
       };
-    case 'SET_USER_BOOKINGS':
-      return {
-        ...state,
-        userBookings: action.payload
-      };
-    case 'ADD_BOOKING':
-      return {
-        ...state,
-        userBookings: [action.payload, ...state.userBookings],
-        currentBooking: action.payload
-      };
-    case 'UPDATE_BOOKING':
-      return {
-        ...state,
-        userBookings: state.userBookings.map(booking =>
-          booking._id === action.payload._id ? action.payload : booking
-        ),
-        currentBooking: state.currentBooking?._id === action.payload._id 
-          ? action.payload 
-          : state.currentBooking
-      };
-    case 'CANCEL_BOOKING':
-      return {
-        ...state,
-        userBookings: state.userBookings.map(booking =>
-          booking._id === action.payload ? { ...booking, status: 'cancelled' } : booking
-        )
-      };
     case 'RESET_BOOKING':
       return {
         ...initialState,
@@ -106,22 +108,42 @@ const bookingReducer = (state, action) => {
 export const BookingProvider = ({ children }) => {
   const [state, dispatch] = useReducer(bookingReducer, initialState);
 
-  // Load user bookings on component mount
-  useEffect(() => {
-    loadUserBookings();
-  }, []);
-
-  const loadUserBookings = async () => {
+  const loadUserBookings = useCallback(async () => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await bookingService.getUserBookings();
-      dispatch({ type: 'SET_USER_BOOKINGS', payload: response.data });
+
+      // Ensure we always have an array of bookings
+      let bookings = [];
+      if (Array.isArray(response.data)) {
+        bookings = response.data;
+      } else if (Array.isArray(response.data?.bookings)) {
+        bookings = response.data.bookings;
+      } else if (Array.isArray(response.data?.data?.bookings)) {
+        bookings = response.data.data.bookings;
+      }
+
+      dispatch({ type: 'SET_USER_BOOKINGS', payload: bookings });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to load bookings' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
+  }, []);
+
+  const cancelBooking = useCallback(async (bookingId) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      await bookingService.cancelBooking(bookingId);
+      dispatch({ type: 'CANCEL_BOOKING', payload: bookingId });
+      return { success: true };
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to cancel booking' });
+      return { success: false, message: error.response?.data?.message || 'Failed to cancel booking' };
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, []);
 
   const createBooking = async (bookingData) => {
     try {
@@ -138,70 +160,45 @@ export const BookingProvider = ({ children }) => {
     }
   };
 
-  const cancelBooking = async (bookingId, reason = '') => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      await bookingService.cancelBooking(bookingId, reason);
-      dispatch({ type: 'CANCEL_BOOKING', payload: bookingId });
-      return { success: true };
-    } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to cancel booking' });
-      return { success: false, message: error.response?.data?.message || 'Failed to cancel booking' };
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
-  };
-
-  const setSelectedVenue = (venue) => {
+  const setSelectedVenue = useCallback((venue) => {
     dispatch({ type: 'SET_SELECTED_VENUE', payload: venue });
-  };
+  }, []);
 
-  const setSelectedCourt = (court) => {
+  const setSelectedCourt = useCallback((court) => {
     dispatch({ type: 'SET_SELECTED_COURT', payload: court });
-  };
+  }, []);
 
-  const setSelectedDate = (date) => {
+  const setSelectedDate = useCallback((date) => {
     dispatch({ type: 'SET_SELECTED_DATE', payload: date });
-  };
+  }, []);
 
-  const setSelectedTimeSlot = (timeSlot) => {
+  const setSelectedTimeSlot = useCallback((timeSlot) => {
     dispatch({ type: 'SET_SELECTED_TIME_SLOT', payload: timeSlot });
-  };
+  }, []);
 
-  const resetBooking = () => {
+  const resetBooking = useCallback(() => {
     dispatch({ type: 'RESET_BOOKING' });
-  };
+  }, []);
 
-  const setBookingStep = (step) => {
+  const setBookingStep = useCallback((step) => {
     dispatch({ type: 'SET_BOOKING_STEP', payload: step });
-  };
-
-  const value = {
-    // State
-    currentBooking: state.currentBooking,
-    userBookings: state.userBookings,
-    selectedVenue: state.selectedVenue,
-    selectedCourt: state.selectedCourt,
-    selectedDate: state.selectedDate,
-    selectedTimeSlot: state.selectedTimeSlot,
-    bookingStep: state.bookingStep,
-    loading: state.loading,
-    error: state.error,
-    
-    // Actions
-    createBooking,
-    cancelBooking,
-    setSelectedVenue,
-    setSelectedCourt,
-    setSelectedDate,
-    setSelectedTimeSlot,
-    resetBooking,
-    setBookingStep,
-    loadUserBookings
-  };
+  }, []);
 
   return (
-    <BookingContext.Provider value={value}>
+    <BookingContext.Provider
+      value={{
+        ...state,
+        loadUserBookings,
+        cancelBooking,
+        createBooking,
+        setSelectedVenue,
+        setSelectedCourt,
+        setSelectedDate,
+        setSelectedTimeSlot,
+        resetBooking,
+        setBookingStep
+      }}
+    >
       {children}
     </BookingContext.Provider>
   );
@@ -210,7 +207,9 @@ export const BookingProvider = ({ children }) => {
 export const useBooking = () => {
   const context = useContext(BookingContext);
   if (!context) {
-    throw new Error('useBooking must be used within BookingProvider');
+    throw new Error('useBooking must be used within a BookingProvider');
   }
   return context;
 };
+
+export default BookingProvider;

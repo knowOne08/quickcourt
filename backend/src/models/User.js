@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema({
   emailVerificationExpire: {
     type: Date
   },
+  favoriteVenues: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Venue'
+  }],
   resetPasswordToken: {
     type: String
   },
@@ -80,9 +84,9 @@ userSchema.index({ emailVerificationCode: 1 });
 userSchema.index({ resetPasswordToken: 1 });
 
 // Pre-save middleware to hash password
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
@@ -93,7 +97,7 @@ userSchema.pre('save', async function(next) {
 });
 
 // Instance method to check password
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   try {
     return await bcrypt.compare(candidatePassword, this.password);
   } catch (error) {
@@ -102,7 +106,7 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 // Instance method to generate auth token payload
-userSchema.methods.getTokenPayload = function() {
+userSchema.methods.getTokenPayload = function () {
   return {
     userId: this._id,
     email: this.email,
@@ -112,12 +116,12 @@ userSchema.methods.getTokenPayload = function() {
 };
 
 // Static method to find by email
-userSchema.statics.findByEmail = function(email) {
+userSchema.statics.findByEmail = function (email) {
   return this.findOne({ email: email.toLowerCase() });
 };
 
 // Remove sensitive data from JSON output
-userSchema.methods.toJSON = function() {
+userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
   delete user.emailVerificationToken;
@@ -128,7 +132,7 @@ userSchema.methods.toJSON = function() {
 };
 
 // Add this method to your User schema
-userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
     const changedTimestamp = parseInt(
       this.passwordChangedAt.getTime() / 1000,

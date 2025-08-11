@@ -5,6 +5,20 @@ const venueController = require('../controllers/venueController');
 const { protect, restrictTo } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
+// Debug route
+router.get('/debug/all', async (req, res) => {
+    try {
+        const venues = await Venue.find({}).limit(10);
+        res.json({
+            success: true,
+            count: venues.length,
+            data: venues
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Public routes
 router.get('/', venueController.getAllVenues);
 router.get('/top', venueController.getTopVenues);
