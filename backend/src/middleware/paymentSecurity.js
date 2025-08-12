@@ -48,8 +48,18 @@ const verifyPaymentLimit = rateLimit({
 // Input validation for payment creation
 const validatePaymentCreation = [
   body('bookingId')
-    .isMongoId()
-    .withMessage('Invalid booking ID format'),
+    .isLength({ min: 1 })
+    .withMessage('Booking ID is required')
+    .custom((value) => {
+      // Allow both MongoDB ObjectIds and temporary booking IDs
+      const mongoIdPattern = /^[0-9a-fA-F]{24}$/;
+      const tempBookingPattern = /^booking_\d+_[a-zA-Z0-9]+$/;
+      
+      if (mongoIdPattern.test(value) || tempBookingPattern.test(value)) {
+        return true;
+      }
+      throw new Error('Invalid booking ID format');
+    }),
     
   body('amount')
     .isFloat({ min: 1, max: 100000 })
