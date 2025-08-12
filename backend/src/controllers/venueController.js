@@ -18,48 +18,80 @@ exports.getAllVenues = async (req, res) => {
       maxPrice,
       rating,
       amenities,
-      sortBy = 'createdAt',
+      search,
+      sortBy = 'rating.average',
       sortOrder = 'desc'
     } = req.query;
 
-    // Build query
-    const query = { status: 'approved', isActive: true };  // Only show approved and active venues
-
-    // Log the incoming request
+    // Build query using indexed fields for better performance
+    const query = { status: 'approved', isActive: true };
+    
     console.log('Venue search params:', req.query);
 
-    // Location filter
+    // Text search has highest priority
+    if (search && search.trim()) {
+      console.log('🔍 Using enhanced search for:', search.trim());
+      // Use the enhanced search method from the model
+      const searchResults = await Venue.searchVenues({
+        search: search.trim(),
+        city,
+        sport,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        rating: rating ? Number(rating) : undefined,
+        amenities: amenities ? amenities.split(',') : undefined,
+        sortBy,
+        sortOrder
+      });
+
+      console.log('📊 Search results count:', searchResults.length);
+
+      // Apply pagination to the results
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + parseInt(limit);
+      const paginatedResults = searchResults.slice(startIndex, endIndex);
+
+      // Populate the results if needed
+      const venues = paginatedResults;
+
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          venues,
+          totalPages: Math.ceil(searchResults.length / limit),
+          currentPage: Number(page),
+          total: searchResults.length
+        }
+      });
+    }
+
+    // Regular filtered search using indexes
     if (city) {
       query['location.city'] = { $regex: city, $options: 'i' };
     }
 
-    // Sport filter
     if (sport) {
-      query.sports = sport; // Simplified sport query for testing
+      query.sports = sport;
     }
 
-    // Log the constructed query
-    console.log('MongoDB query:', query);
-
-    // Price filter
     if (minPrice || maxPrice) {
       query['pricing.hourly'] = {};
       if (minPrice) query['pricing.hourly'].$gte = Number(minPrice);
       if (maxPrice) query['pricing.hourly'].$lte = Number(maxPrice);
     }
 
-    // Rating filter
     if (rating) {
       query['rating.average'] = { $gte: Number(rating) };
     }
 
-    // Amenities filter
     if (amenities) {
       const amenitiesArray = amenities.split(',');
       query.amenities = { $all: amenitiesArray };
     }
 
-    // Sort options
+    console.log('MongoDB query:', query);
+
+    // Sort options with index-friendly defaults
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
@@ -83,6 +115,7 @@ exports.getAllVenues = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error in getAllVenues:', error);
     res.status(400).json({
       status: 'error',
       message: error.message
@@ -120,12 +153,12 @@ exports.getTopVenues = async (req, res) => {
   }
 };
 
-// @desc    Search venues
+// @desc    Search venues with enhanced text search
 // @route   GET /api/venues/search
 // @access  Public
 exports.searchVenues = async (req, res) => {
   try {
-    const { q, city, sport, page = 1, limit = 12 } = req.query;
+    const { q, city, sport, page = 1, limit = 12, sortBy, sortOrder } = req.query;
 
     if (!q && !city && !sport) {
       return res.status(400).json({
@@ -134,36 +167,47 @@ exports.searchVenues = async (req, res) => {
       });
     }
 
-    const query = { status: 'approved', isActive: true };
+    let venues = [];
+    let total = 0;
 
-    // Text search
-    if (q) {
-      query.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { 'location.area': { $regex: q, $options: 'i' } },
-        { 'location.city': { $regex: q, $options: 'i' } }
-      ];
+    if (q && q.trim()) {
+      // Use enhanced text search
+      const searchResults = await Venue.searchVenues({
+        search: q.trim(),
+        city,
+        sport,
+        sortBy,
+        sortOrder
+      });
+
+      total = searchResults.length;
+      
+      // Apply pagination
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + parseInt(limit);
+      venues = searchResults.slice(startIndex, endIndex);
+    } else {
+      // Fallback to regular query for city/sport only searches
+      const query = { status: 'approved', isActive: true };
+
+      if (city) {
+        query['location.city'] = { $regex: city, $options: 'i' };
+      }
+
+      if (sport) {
+        query.sports = { $in: [sport] };
+      }
+
+      venues = await Venue.find(query)
+        .populate('owner', 'name ownerProfile.businessName')
+        .populate('courts', 'name sport pricePerHour')
+        .sort({ 'rating.average': -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .lean();
+
+      total = await Venue.countDocuments(query);
     }
-
-    // Additional filters
-    if (city) {
-      query['location.city'] = { $regex: city, $options: 'i' };
-    }
-
-    if (sport) {
-      query.sports = { $in: [sport] };
-    }
-
-    const venues = await Venue.find(query)
-      .populate('owner', 'name')
-      .populate('courts', 'name sport pricePerHour')
-      .sort({ 'rating.average': -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .lean();
-
-    const total = await Venue.countDocuments(query);
 
     res.status(200).json({
       status: 'success',
@@ -175,6 +219,7 @@ exports.searchVenues = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error in searchVenues:', error);
     res.status(400).json({
       status: 'error',
       message: error.message
@@ -921,6 +966,98 @@ exports.getVenueBookings = async (req, res) => {
       }
     });
   } catch (error) {
+    res.status(400).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get search suggestions for venues and locations
+// @route   GET /api/venues/suggestions
+// @access  Public
+exports.getSearchSuggestions = async (req, res) => {
+  try {
+    const { q, limit = 5 } = req.query;
+
+    if (!q || q.trim().length < 2) {
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          suggestions: []
+        }
+      });
+    }
+
+    const searchTerm = q.trim();
+
+    // Get venue name suggestions
+    const venueNameSuggestions = await Venue.find({
+      status: 'approved',
+      isActive: true,
+      name: { $regex: searchTerm, $options: 'i' }
+    })
+    .select('name location.city location.address')
+    .limit(parseInt(limit))
+    .lean();
+
+    // Get location suggestions (cities and areas)
+    const locationSuggestions = await Venue.aggregate([
+      {
+        $match: {
+          status: 'approved',
+          isActive: true,
+          $or: [
+            { 'location.city': { $regex: searchTerm, $options: 'i' } },
+            { 'location.address': { $regex: searchTerm, $options: 'i' } },
+            { 'location.state': { $regex: searchTerm, $options: 'i' } }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: {
+            city: '$location.city',
+            state: '$location.state'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          location: { $concat: ['$_id.city', ', ', '$_id.state'] },
+          count: 1
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: parseInt(limit) }
+    ]);
+
+    // Format suggestions
+    const suggestions = [
+      ...venueNameSuggestions.map(venue => ({
+        type: 'venue',
+        text: venue.name,
+        subtitle: `${venue.location.city}`,
+        id: venue._id
+      })),
+      ...locationSuggestions.map(loc => ({
+        type: 'location',
+        text: loc.location,
+        subtitle: `${loc.count} venues`,
+        count: loc.count
+      }))
+    ].slice(0, parseInt(limit));
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        suggestions
+      }
+    });
+  } catch (error) {
+    console.error('Error in getSearchSuggestions:', error);
     res.status(400).json({
       status: 'error',
       message: error.message

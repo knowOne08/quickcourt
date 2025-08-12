@@ -187,12 +187,37 @@ const venueSchema = new mongoose.Schema({
 // Indexes for better query performance
 venueSchema.index({ 'location.coordinates': '2dsphere' });
 venueSchema.index({ 'location.city': 1 });
+venueSchema.index({ 'location.state': 1 });
+venueSchema.index({ 'location.address': 1 });
 venueSchema.index({ sports: 1 });
 venueSchema.index({ status: 1 });
 venueSchema.index({ 'rating.average': -1 });
 venueSchema.index({ 'pricing.hourly': 1 });
 venueSchema.index({ owner: 1 });
 venueSchema.index({ createdAt: -1 });
+
+// Text search index for fast search functionality
+venueSchema.index({ 
+  name: 'text', 
+  description: 'text',
+  'location.address': 'text',
+  'location.city': 'text',
+  'location.state': 'text'
+}, {
+  weights: {
+    name: 10,
+    'location.city': 8,
+    'location.address': 6,
+    'location.state': 4,
+    description: 2
+  },
+  name: 'venue_text_search'
+});
+
+// Compound indexes for common search patterns
+venueSchema.index({ sports: 1, 'location.city': 1, status: 1 });
+venueSchema.index({ 'pricing.hourly': 1, 'rating.average': -1, status: 1 });
+venueSchema.index({ status: 1, isActive: 1, 'rating.average': -1 });
 
 // Virtual for formatted address
 venueSchema.virtual('fullAddress').get(function() {
@@ -307,29 +332,178 @@ venueSchema.statics.findNearby = function(longitude, latitude, maxDistance = 100
   });
 };
 
-// Static method to search venues
-venueSchema.statics.searchVenues = function(filters = {}) {
+// Static method to search venues with enhanced search capabilities
+venueSchema.statics.searchVenues = async function(filters = {}) {
+  const baseQuery = { status: 'approved', isActive: true };
+  
+  console.log('🔍 searchVenues called with filters:', filters);
+  
+  if (filters.search && filters.search.trim()) {
+    const searchText = filters.search.trim();
+    console.log('🔎 Searching for:', searchText);
+    
+    // First try text search for exact words
+    let textResults = [];
+    try {
+      textResults = await this.find({
+        ...baseQuery,
+        $text: { $search: searchText }
+      })
+      .select('name location pricing rating sports amenities images owner courts')
+      .lean();
+      
+      console.log('📝 Text search results:', textResults.length);
+      // Add text score for sorting
+      textResults = textResults.map(doc => ({ ...doc, searchScore: 2, searchType: 'text' }));
+    } catch (error) {
+      console.log('❌ Text search failed, using regex only:', error.message);
+    }
+    
+    // Also do regex search for partial matches
+    const regexResults = await this.find({
+      ...baseQuery,
+      $or: [
+        { name: { $regex: searchText, $options: 'i' } },
+        { 'location.address': { $regex: searchText, $options: 'i' } },
+        { 'location.city': { $regex: searchText, $options: 'i' } },
+        { 'location.state': { $regex: searchText, $options: 'i' } }
+      ]
+    })
+    .select('name location pricing rating sports amenities images owner courts')
+    .lean()
+    .then(results => {
+      console.log('🔍 Regex search results:', results.length);
+      return results.map(doc => ({ ...doc, searchScore: 1, searchType: 'regex' }));
+    });
+    
+    // Combine and deduplicate results
+    const allResults = [...textResults, ...regexResults];
+    console.log('🔗 Combined results before deduplication:', allResults.length);
+    
+    const uniqueResults = allResults.reduce((acc, current) => {
+      const existing = acc.find(item => item._id.toString() === current._id.toString());
+      if (!existing) {
+        acc.push(current);
+      } else if (current.searchScore > existing.searchScore) {
+        // Replace with higher scoring match
+        const index = acc.findIndex(item => item._id.toString() === current._id.toString());
+        acc[index] = current;
+      }
+      return acc;
+    }, []);
+    
+    console.log('✨ Unique results after deduplication:', uniqueResults.length);
+    
+    // Apply additional filters
+    let filteredResults = uniqueResults;
+    
+    if (filters.city) {
+      const cityRegex = new RegExp(filters.city, 'i');
+      filteredResults = filteredResults.filter(venue => cityRegex.test(venue.location.city));
+      console.log(`🏙️  Filtered by city '${filters.city}':`, filteredResults.length);
+    }
+    
+    if (filters.sport) {
+      filteredResults = filteredResults.filter(venue => venue.sports.includes(filters.sport));
+      console.log(`⚽ Filtered by sport '${filters.sport}':`, filteredResults.length);
+    }
+    
+    if (filters.minPrice || filters.maxPrice) {
+      filteredResults = filteredResults.filter(venue => {
+        const price = venue.pricing?.hourly || 0;
+        return (!filters.minPrice || price >= filters.minPrice) &&
+               (!filters.maxPrice || price <= filters.maxPrice);
+      });
+      console.log('💰 Filtered by price:', filteredResults.length);
+    }
+    
+    if (filters.rating) {
+      filteredResults = filteredResults.filter(venue => 
+        (venue.rating?.average || 0) >= filters.rating
+      );
+      console.log(`⭐ Filtered by rating >= ${filters.rating}:`, filteredResults.length);
+    }
+    
+    if (filters.amenities && filters.amenities.length > 0) {
+      filteredResults = filteredResults.filter(venue =>
+        filters.amenities.every(amenity => venue.amenities?.includes(amenity))
+      );
+      console.log('🏢 Filtered by amenities:', filteredResults.length);
+    }
+    
+    // Sort by search score, then by rating
+    filteredResults.sort((a, b) => {
+      if (b.searchScore !== a.searchScore) {
+        return b.searchScore - a.searchScore;
+      }
+      return (b.rating?.average || 0) - (a.rating?.average || 0);
+    });
+    
+    console.log('🎯 Final results:', filteredResults.length);
+    return filteredResults;
+  } else {
+    // No search query, use regular filtering
+    const query = { ...baseQuery };
+    
+    if (filters.city) {
+      query['location.city'] = new RegExp(filters.city, 'i');
+    }
+    
+    if (filters.sport) {
+      query.sports = { $in: [filters.sport] };
+    }
+    
+    if (filters.minPrice || filters.maxPrice) {
+      query['pricing.hourly'] = {};
+      if (filters.minPrice) query['pricing.hourly'].$gte = filters.minPrice;
+      if (filters.maxPrice) query['pricing.hourly'].$lte = filters.maxPrice;
+    }
+
+    if (filters.rating) {
+      query['rating.average'] = { $gte: filters.rating };
+    }
+    
+    if (filters.amenities && filters.amenities.length > 0) {
+      query.amenities = { $all: filters.amenities };
+    }
+
+    const sortField = filters.sortBy || 'rating.average';
+    const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
+    const sortObj = {};
+    sortObj[sortField] = sortOrder;
+
+    return this.find(query)
+      .select('name location pricing rating sports amenities images owner courts')
+      .sort(sortObj)
+      .lean();
+  }
+};
+
+// Enhanced method for location-based search with partial matching
+venueSchema.statics.searchByLocation = function(locationQuery, options = {}) {
   const query = { status: 'approved', isActive: true };
   
-  if (filters.city) {
-    query['location.city'] = new RegExp(filters.city, 'i');
+  if (locationQuery) {
+    query.$or = [
+      { 'location.address': new RegExp(locationQuery, 'i') },
+      { 'location.city': new RegExp(locationQuery, 'i') },
+      { 'location.state': new RegExp(locationQuery, 'i') },
+      { name: new RegExp(locationQuery, 'i') }
+    ];
   }
-  
-  if (filters.sport) {
-    query.sports = { $in: [filters.sport] };
+
+  let queryBuilder = this.find(query);
+
+  if (options.limit) {
+    queryBuilder = queryBuilder.limit(options.limit);
   }
-  
-  if (filters.minPrice || filters.maxPrice) {
-    query['pricing.hourly'] = {};
-    if (filters.minPrice) query['pricing.hourly'].$gte = filters.minPrice;
-    if (filters.maxPrice) query['pricing.hourly'].$lte = filters.maxPrice;
+
+  if (options.page && options.limit) {
+    const skip = (options.page - 1) * options.limit;
+    queryBuilder = queryBuilder.skip(skip);
   }
-  
-  if (filters.amenities && filters.amenities.length > 0) {
-    query.amenities = { $all: filters.amenities };
-  }
-  
-  return this.find(query);
+
+  return queryBuilder.sort({ 'rating.average': -1 });
 };
 
 module.exports = mongoose.model('Venue', venueSchema);

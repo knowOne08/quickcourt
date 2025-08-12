@@ -1,34 +1,68 @@
 const express = require('express');
 const paymentController = require('../controllers/paymentController');
 const { protect, restrictTo } = require('../middleware/auth');
+const {
+  createPaymentLimit,
+  verifyPaymentLimit,
+  validatePaymentCreation,
+  validatePaymentVerification,
+  paymentSecurityHeaders,
+  logPaymentRequest,
+  detectFraudulentActivity,
+  verifyWebhookSignature
+} = require('../middleware/paymentSecurity');
 
 const router = express.Router();
 
-// Protect all routes
-// router.use(protect);
+// Apply security headers to all payment routes
+router.use(paymentSecurityHeaders);
 
-// Payment processing
-router.post('/create-order', paymentController.createPaymentOrder);
-router.post('/verify', paymentController.verifyPayment);
+// Protect all routes (require authentication)
+router.use(protect);
 
-// Payment history
-router.get('/history', paymentController.getPaymentHistory);
-router.get('/:id', paymentController.getPaymentDetails);
+// Payment processing with comprehensive security
+router.post('/create-order', 
+  createPaymentLimit,
+  validatePaymentCreation,
+  detectFraudulentActivity,
+  logPaymentRequest('create'),
+  paymentController.createPaymentOrder
+);
 
-// Refunds
-router.post('/:id/refund', paymentController.initiateRefund);
-router.get('/refunds/:refundId', paymentController.getRefundStatus);
+router.post('/verify', 
+  verifyPaymentLimit,
+  validatePaymentVerification,
+  logPaymentRequest('verify'),
+  paymentController.verifyPayment
+);
 
-// Wallet operations
-router.get('/wallet/balance', paymentController.getWalletBalance);
-router.post('/wallet/add', paymentController.addMoneyToWallet);
+// Payment history and details
+router.get('/history', 
+  logPaymentRequest('history'),
+  paymentController.getPaymentHistory
+);
 
-// Pricing and fees
-router.post('/calculate-price', paymentController.calculateBookingPrice);
-router.get('/platform-fees', paymentController.getPlatformFees);
+router.get('/:id', 
+  logPaymentRequest('details'),
+  paymentController.getPaymentDetails
+);
 
-// Analytics
-router.get('/analytics', paymentController.getPaymentAnalytics);
-router.get('/revenue-report', paymentController.getRevenueReport);
+// Refund operations
+router.post('/:id/refund', 
+  logPaymentRequest('refund'),
+  paymentController.initiateRefund
+);
+
+router.get('/refunds/:refundId', 
+  logPaymentRequest('refund-status'),
+  paymentController.getRefundStatus
+);
+
+// Webhook endpoint (no authentication required, but signature verification)
+router.post('/webhook', 
+  express.raw({ type: 'application/json' }),
+  verifyWebhookSignature,
+  paymentController.handleWebhook
+);
 
 module.exports = router;

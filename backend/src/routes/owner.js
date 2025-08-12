@@ -5,8 +5,25 @@ const upload = require('../middleware/upload');
 
 const router = express.Router();
 
-// Protect all routes
-// router.use(protect);
+// Protect all routes except registration
+router.use((req, res, next) => {
+  // Skip authentication for registration endpoint
+  if (req.path === '/register' && req.method === 'POST') {
+    return next();
+  }
+  // Apply authentication for all other routes
+  return protect(req, res, next);
+});
+
+// Apply role restriction for non-registration routes
+router.use((req, res, next) => {
+  // Skip role restriction for registration endpoint
+  if (req.path === '/register' && req.method === 'POST') {
+    return next();
+  }
+  // Apply facility_owner role restriction for all other routes
+  return restrictTo('facility_owner')(req, res, next);
+});
 
 // Owner registration and profile
 router.post('/register', ownerController.registerAsOwner);

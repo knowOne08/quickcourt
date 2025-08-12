@@ -374,14 +374,13 @@ exports.approveVenue = async (req, res) => {
     const venue = await Venue.findByIdAndUpdate(
       id,
       {
-        isApproved: true,
-        status: 'active',
-        approvalReason: reason,
+        status: 'approved',
         approvedAt: new Date(),
-        approvedBy: req.user.id
+        approvedBy: req.user.id,
+        rejectionReason: undefined // Clear any previous rejection reason
       },
       { new: true }
-    );
+    ).populate('owner', 'name email');
 
     if (!venue) {
       return res.status(404).json({
@@ -392,6 +391,7 @@ exports.approveVenue = async (req, res) => {
 
     res.status(200).json({
       status: 'success',
+      message: 'Venue approved successfully',
       data: { venue }
     });
   } catch (error) {
@@ -407,17 +407,23 @@ exports.rejectVenue = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
 
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Rejection reason is required'
+      });
+    }
+
     const venue = await Venue.findByIdAndUpdate(
       id,
       {
-        isApproved: false,
         status: 'rejected',
         rejectionReason: reason,
-        rejectedAt: new Date(),
-        rejectedBy: req.user.id
+        approvedAt: undefined,
+        approvedBy: undefined
       },
       { new: true }
-    );
+    ).populate('owner', 'name email');
 
     if (!venue) {
       return res.status(404).json({
@@ -428,6 +434,7 @@ exports.rejectVenue = async (req, res) => {
 
     res.status(200).json({
       status: 'success',
+      message: 'Venue rejected successfully',
       data: { venue }
     });
   } catch (error) {
@@ -825,19 +832,277 @@ exports.getDashboardAnalytics = async (req, res) => {
 
 // Additional analytics methods
 exports.getRevenueAnalytics = async (req, res) => {
-  // Implementation for revenue analytics
+  try {
+    const { period = '30d' } = req.query;
+    
+    let startDate = new Date();
+    switch (period) {
+      case '7d':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(startDate.getDate() - 90);
+        break;
+      case '1y':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+    }
+
+    const revenueData = await Payment.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          totalRevenue: { $sum: '$amount' },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+      }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: { revenueData }
+    });
+  } catch (error) {
+    res.status(400).json({
+      status: 'error',
+      message: error.message
+    });
+  }
 };
 
 exports.getUserAnalytics = async (req, res) => {
-  // Implementation for user analytics
+  try {
+    const { period = '30d' } = req.query;
+    
+    let startDate = new Date();
+    switch (period) {
+      case '7d':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(startDate.getDate() - 90);
+        break;
+      case '1y':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+    }
+
+    const userGrowth = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          newUsers: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+      }
+    ]);
+
+    const usersByRole = await User.aggregate([
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: { 
+        userGrowth,
+        usersByRole
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      status: 'error',
+      message: error.message
+    });
+  }
 };
 
 exports.getVenueAnalytics = async (req, res) => {
-  // Implementation for venue analytics
+  try {
+    const venuesByStatus = await Venue.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const venuesBySport = await Venue.aggregate([
+      {
+        $unwind: '$sports'
+      },
+      {
+        $group: {
+          _id: '$sports',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
+
+    const topVenues = await Venue.aggregate([
+      {
+        $lookup: {
+          from: 'bookings',
+          localField: '_id',
+          foreignField: 'venue',
+          as: 'bookings'
+        }
+      },
+      {
+        $addFields: {
+          bookingCount: { $size: '$bookings' }
+        }
+      },
+      {
+        $sort: { bookingCount: -1 }
+      },
+      {
+        $limit: 10
+      },
+      {
+        $project: {
+          name: 1,
+          location: 1,
+          bookingCount: 1
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        venuesByStatus,
+        venuesBySport,
+        topVenues
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      status: 'error',
+      message: error.message
+    });
+  }
 };
 
 exports.getBookingAnalytics = async (req, res) => {
-  // Implementation for booking analytics
+  try {
+    const { period = '30d' } = req.query;
+    
+    let startDate = new Date();
+    switch (period) {
+      case '7d':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(startDate.getDate() - 90);
+        break;
+      case '1y':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+    }
+
+    const bookingTrends = await Booking.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          bookingCount: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+      }
+    ]);
+
+    const bookingsByStatus = await Booking.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const peakHours = await Booking.aggregate([
+      {
+        $project: {
+          hour: { $hour: { $dateFromString: { dateString: '$startTime' } } }
+        }
+      },
+      {
+        $group: {
+          _id: '$hour',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id': 1 }
+      }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        bookingTrends,
+        bookingsByStatus,
+        peakHours
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      status: 'error',
+      message: error.message
+    });
+  }
 };
 
 // Platform settings

@@ -19,14 +19,14 @@ exports.registerAsOwner = async (req, res) => {
       });
     }
 
-    if (user.role === 'owner') {
+    if (user.role === 'facility_owner') {
       return res.status(400).json({
         status: 'error',
-        message: 'User is already registered as owner'
+        message: 'User is already registered as facility owner'
       });
     }
 
-    user.role = 'owner';
+    user.role = 'facility_owner';
     user.ownerProfile = {
       businessName,
       businessType,
@@ -59,10 +59,10 @@ exports.getOwnerProfile = async (req, res) => {
     const userId = req.user.id;
     const user = await User.findById(userId).select('-password');
 
-    if (user.role !== 'owner') {
+    if (user.role !== 'facility_owner') {
       return res.status(403).json({
         status: 'error',
-        message: 'Access denied. Owner role required.'
+        message: 'Access denied. Facility owner role required.'
       });
     }
 
@@ -112,14 +112,68 @@ exports.updateOwnerProfile = async (req, res) => {
 // Venue management
 exports.createVenue = async (req, res) => {
   try {
+    console.log('Create venue request body:', req.body);
+    console.log('Create venue files:', req.files);
+    
     const ownerId = req.user.id;
-    const venueData = { ...req.body, owner: ownerId };
+    
+    // Parse nested form data
+    const venueData = {
+      name: req.body.name,
+      description: req.body.description,
+      owner: ownerId,
+      location: {
+        address: req.body.locationAddress,
+        city: req.body.locationCity,
+        state: req.body.locationState,
+        country: req.body.locationCountry || 'India',
+        pincode: req.body.locationPincode
+      },
+      sports: req.body['sports[]'] ? (Array.isArray(req.body['sports[]']) ? req.body['sports[]'] : [req.body['sports[]']]) : [],
+      venueType: req.body.venueType,
+      amenities: req.body['amenities[]'] ? (Array.isArray(req.body['amenities[]']) ? req.body['amenities[]'] : [req.body['amenities[]']]) : [],
+      availability: {
+        openTime: req.body.availabilityOpenTime,
+        closeTime: req.body.availabilityCloseTime,
+        weeklyOff: req.body['availabilityWeeklyOff[]'] ? (Array.isArray(req.body['availabilityWeeklyOff[]']) ? req.body['availabilityWeeklyOff[]'] : [req.body['availabilityWeeklyOff[]']]) : []
+      },
+      pricing: {
+        hourly: parseFloat(req.body.pricingHourly),
+        currency: req.body.pricingCurrency || 'INR'
+      },
+      contact: {
+        phone: req.body.contactPhone || '',
+        email: req.body.contactEmail || '',
+        website: req.body.contactWebsite || ''
+      },
+      policies: {
+        cancellation: req.body.policiesCancellation || 'moderate',
+        advance_booking_days: parseInt(req.body.policiesAdvanceBookingDays) || 30,
+        refund_policy: req.body.policiesRefundPolicy || ''
+      }
+    };
 
+    // Handle image uploads
     if (req.files && req.files.length > 0) {
-      venueData.images = req.files.map(file => file.path);
+      venueData.images = req.files.map(file => ({
+        url: `/uploads/venues/${file.filename}`, // Construct proper URL
+        publicId: file.filename,
+        caption: file.originalname
+      }));
     }
 
+    console.log('Processed venue data:', venueData);
+
     const venue = await Venue.create(venueData);
+
+    // For development: auto-approve venues if in development mode
+    if (process.env.NODE_ENV === 'development') {
+      venue.status = 'approved';
+      venue.approvedAt = new Date();
+      venue.approvedBy = ownerId; // Self-approved for development
+      await venue.save();
+      console.log('Venue auto-approved for development');
+    }
 
     res.status(201).json({
       status: 'success',
@@ -128,6 +182,7 @@ exports.createVenue = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Create venue error:', error);
     res.status(400).json({
       status: 'error',
       message: error.message

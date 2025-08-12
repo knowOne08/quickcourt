@@ -108,8 +108,12 @@ exports.getUserBookings = async (req, res) => {
 exports.getAvailableSlots = async (req, res) => {
   try {
     const { courtId, date } = req.params;
+    const { duration } = req.query; // Get duration from query params
     
-    const availableSlots = await bookingService.getAvailableSlots(courtId, date);
+    // Parse duration, default to 60 minutes if not provided
+    const slotDuration = duration ? parseInt(duration) : 60;
+    
+    const availableSlots = await bookingService.getAvailableSlots(courtId, date, slotDuration);
     
     res.status(200).json({
       status: 'success',
