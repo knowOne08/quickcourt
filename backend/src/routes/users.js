@@ -30,6 +30,7 @@ router.get('/profile/public/:userId', userController.getPublicProfile || ((req, 
 // Profile management
 router.get('/profile', protect, userController.getProfile);
 router.patch('/profile', protect, userController.updateProfile);
+router.patch('/change-password', protect, userController.changePassword);
 router.delete('/account', protect, userController.deleteAccount);
 
 // User preferences

@@ -53,6 +53,10 @@ const venueSchema = new mongoose.Schema({
     enum: ['badminton', 'tennis', 'football', 'cricket', 'basketball', 'squash', 'table_tennis', 'volleyball'],
     required: [true, 'At least one sport is required']
   }],
+  courts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Court'
+  }],
   venueType: {
     type: String,
     enum: ['indoor', 'outdoor', 'both'],

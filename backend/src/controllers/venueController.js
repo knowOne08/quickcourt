@@ -23,7 +23,7 @@ exports.getAllVenues = async (req, res) => {
     } = req.query;
 
     // Build query
-    const query = {};  // Removing initial filters for testing
+    const query = { status: 'approved', isActive: true };  // Only show approved and active venues
 
     // Log the incoming request
     console.log('Venue search params:', req.query);
@@ -43,14 +43,14 @@ exports.getAllVenues = async (req, res) => {
 
     // Price filter
     if (minPrice || maxPrice) {
-      query.priceRange = {};
-      if (minPrice) query.priceRange.$gte = Number(minPrice);
-      if (maxPrice) query.priceRange.$lte = Number(maxPrice);
+      query['pricing.hourly'] = {};
+      if (minPrice) query['pricing.hourly'].$gte = Number(minPrice);
+      if (maxPrice) query['pricing.hourly'].$lte = Number(maxPrice);
     }
 
     // Rating filter
     if (rating) {
-      query.averageRating = { $gte: Number(rating) };
+      query['rating.average'] = { $gte: Number(rating) };
     }
 
     // Amenities filter
@@ -98,12 +98,13 @@ exports.getTopVenues = async (req, res) => {
     const { limit = 6 } = req.query;
 
     const venues = await Venue.find({
-      status: 'active',
-      isApproved: true,
-      averageRating: { $gte: 4.0 }
+      status: 'approved',
+      isActive: true,
+      'rating.average': { $gte: 4.0 }
     })
       .populate('owner', 'name')
-      .sort({ averageRating: -1, totalReviews: -1 })
+      .populate('courts', 'name sport pricePerHour')
+      .sort({ 'rating.average': -1, 'rating.count': -1 })
       .limit(Number(limit))
       .lean();
 
@@ -133,7 +134,7 @@ exports.searchVenues = async (req, res) => {
       });
     }
 
-    const query = { status: 'active', isApproved: true };
+    const query = { status: 'approved', isActive: true };
 
     // Text search
     if (q) {
@@ -157,7 +158,7 @@ exports.searchVenues = async (req, res) => {
     const venues = await Venue.find(query)
       .populate('owner', 'name')
       .populate('courts', 'name sport pricePerHour')
-      .sort({ averageRating: -1 })
+      .sort({ 'rating.average': -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .lean();

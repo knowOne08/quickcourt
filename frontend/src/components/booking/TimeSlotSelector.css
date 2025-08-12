@@ -1,0 +1,215 @@
+/* TimeSlotSelector.css */
+.time-slot-selector {
+  width: 100%;
+}
+
+
+
+.duration-info {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(113, 75, 103, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid var(--odoo-primary);
+}
+
+.duration-info small {
+  color: var(--odoo-primary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.time-slot {
+  background: var(--white);
+  border: 2px solid var(--border-gray);
+  border-radius: 10px;
+  padding: 16px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.time-slot:hover:not(.unavailable):not(:disabled) {
+  border-color: var(--odoo-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(113, 75, 103, 0.15);
+}
+
+.time-slot.selected {
+  border-color: var(--odoo-primary);
+  background: linear-gradient(135deg, var(--odoo-primary), var(--odoo-secondary));
+  color: var(--white);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(113, 75, 103, 0.25);
+}
+
+.time-slot.unavailable,
+.time-slot:disabled {
+  background: var(--light-gray);
+  color: var(--odoo-gray);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.time-slot.unavailable:hover,
+.time-slot:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-gray);
+}
+
+.slot-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.start-time,
+.end-time {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.time-separator {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.slot-price {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  color: var(--odoo-primary);
+}
+
+.time-slot.selected .slot-price {
+  color: var(--white);
+}
+
+.slot-status {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.selected-slot-info {
+  background: var(--light-gray);
+  border-radius: 10px;
+  padding: 16px;
+  border-left: 4px solid var(--odoo-primary);
+}
+
+.selected-slot-info h4 {
+  color: var(--odoo-primary);
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.slot-details p {
+  margin: 6px 0;
+  font-size: 0.9rem;
+  color: var(--black);
+}
+
+.slot-details strong {
+  color: var(--odoo-primary);
+}
+
+.no-slots,
+.no-available-slots {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--odoo-gray);
+}
+
+.no-slots p,
+.no-available-slots p {
+  margin: 8px 0;
+  font-size: 0.95rem;
+}
+
+.no-available-slots {
+  background: var(--light-gray);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .time-slot {
+    padding: 12px 8px;
+    min-height: 90px;
+  }
+  
+  .start-time,
+  .end-time {
+    font-size: 0.85rem;
+  }
+  
+  .slot-price {
+    font-size: 0.8rem;
+  }
+  
+  .slot-status {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+  
+  .time-slot {
+    padding: 10px 6px;
+    min-height: 80px;
+  }
+  
+  .start-time,
+  .end-time {
+    font-size: 0.8rem;
+  }
+  
+  .slot-price {
+    font-size: 0.75rem;
+  }
+  
+  .slot-status {
+    font-size: 0.65rem;
+  }
+  
+  .selected-slot-info {
+    padding: 12px;
+  }
+  
+  .selected-slot-info h4 {
+    font-size: 0.9rem;
+  }
+  
+  .slot-details p {
+    font-size: 0.85rem;
+  }
+}

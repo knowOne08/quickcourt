@@ -20,7 +20,8 @@ exports.protect = catchAsync(async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 3) Check if user still exists
-    const currentUser = await User.findById(decoded.id).select('+password');
+
+    const currentUser = await User.findById(decoded.userId).select('+password');
 
     if (!currentUser) {
       throw new AppError('The user belonging to this token no longer exists.', 401);
@@ -45,14 +46,6 @@ exports.protect = catchAsync(async (req, res, next) => {
     throw error;
   }
 });
-next();
-  } catch (error) {
-  return res.status(401).json({
-    status: 'error',
-    message: 'Invalid token. Please log in again!'
-  });
-}
-};
 
 // RestrictTo middleware - checks user roles
 exports.restrictTo = (...roles) => {
@@ -91,7 +84,7 @@ exports.checkOwnership = (Model, resourceParam = 'id') => {
       }
 
       // Check if user owns the resource or is admin
-      if (resource.user && resource.user.toString() !== req.user.id && req.user.role !== 'admin') {
+      if (resource.user && resource.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
         return res.status(403).json({
           status: 'error',
           message: 'You do not have permission to access this resource'
@@ -99,7 +92,7 @@ exports.checkOwnership = (Model, resourceParam = 'id') => {
       }
 
       // For venue owners
-      if (resource.owner && resource.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+      if (resource.owner && resource.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
         return res.status(403).json({
           status: 'error',
           message: 'You do not have permission to access this resource'

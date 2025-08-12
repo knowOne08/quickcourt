@@ -4,6 +4,7 @@ const router = express.Router();
 const venueController = require('../controllers/venueController');
 const { protect, restrictTo } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const Venue = require('../models/Venue');
 
 // Debug route
 router.get('/debug/all', async (req, res) => {

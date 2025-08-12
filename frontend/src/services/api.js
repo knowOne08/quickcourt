@@ -27,7 +27,9 @@ api.interceptors.request.use(
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
     if (error.response) {
       // Handle specific status codes
@@ -36,6 +38,14 @@ api.interceptors.response.use(
           // Unauthorized - clear token and redirect to login
           localStorage.removeItem('token');
           window.location.href = '/login';
+          break;
+        case 403:
+          // Forbidden - user doesn't have permission
+          console.error('Access forbidden:', error.response.data);
+          break;
+        case 404:
+          // Not found
+          console.error('Resource not found:', error.response.data);
           break;
         case 500:
           // Log server errors for debugging
@@ -49,6 +59,12 @@ api.interceptors.response.use(
           // Log other errors
           console.error(`HTTP Error ${error.response.status}:`, error.response.data);
       }
+    } else if (error.request) {
+      // Network error
+      console.error('Network error:', error.request);
+    } else {
+      // Other errors
+      console.error('Error:', error.message);
     }
     return Promise.reject(error);
   }

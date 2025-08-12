@@ -9,6 +9,7 @@ const SignUp = () => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
     role: 'user'
@@ -20,8 +21,14 @@ const SignUp = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState({ fullName: '', email: '', password: '', confirmPassword: '', role: '' });
-
+  const [errors, setErrors] = useState({ 
+    fullName: '', 
+    email: '', 
+    phoneNumber: '',
+    password: '', 
+    confirmPassword: '', 
+    role: '' 
+  });
 
   const { signup } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +39,7 @@ const SignUp = () => {
     setErrors((prev) => ({ ...prev, [name]: '' }));
     setError('');
   };
+
   const handleImageChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -48,16 +56,31 @@ const SignUp = () => {
     setError('');
   };
 
-
   // basic client-side validation
   const validate = () => {
-    const next = { fullName: '', email: '', password: '', confirmPassword: '', role: '' };
+    const next = { 
+      fullName: '', 
+      email: '', 
+      phoneNumber: '',
+      password: '', 
+      confirmPassword: '', 
+      role: '' 
+    };
+    
     if (!formData.fullName.trim()) next.fullName = 'Full name is required';
     else if (formData.fullName.trim().length < 2) next.fullName = 'Full name must be at least 2 characters';
 
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) next.email = 'Email is required';
     else if (!emailRe.test(formData.email.trim())) next.email = 'Enter a valid email address';
+
+    // Phone number validation (optional but if provided, should be valid)
+    if (formData.phoneNumber.trim()) {
+      const phoneRe = /^[0-9]{10}$/;
+      if (!phoneRe.test(formData.phoneNumber.trim())) {
+        next.phoneNumber = 'Enter a valid 10-digit phone number';
+      }
+    }
 
     if (!formData.password) next.password = 'Password is required';
     else if (formData.password.length < 8) next.password = 'Password must be at least 8 characters';
@@ -68,7 +91,7 @@ const SignUp = () => {
     if (!formData.role) next.role = 'Please select an account type';
 
     setErrors(next);
-    return !next.fullName && !next.email && !next.password && !next.confirmPassword && !next.role;
+    return !next.fullName && !next.email && !next.phoneNumber && !next.password && !next.confirmPassword && !next.role;
   };
 
   const handleSubmit = async (e) => {
@@ -78,21 +101,26 @@ const SignUp = () => {
     if (!validate()) return;
     setLoading(true);
 
-    const result = await signup(formData);
+    try {
+      const result = await signup(formData);
 
-    if (result.success) {
-      navigate('/verify-email');
-    } else {
-      // map duplicate email or validation to email field if applicable
-      const msg = result.message || '';
-      if (/email/i.test(msg)) {
-        setErrors((prev) => ({ ...prev, email: msg }));
+      if (result.success) {
+        navigate('/verify-email');
       } else {
-        setError(msg);
+        // map duplicate email or validation to email field if applicable
+        const msg = result.message || 'Signup failed';
+        if (/email/i.test(msg)) {
+          setErrors((prev) => ({ ...prev, email: msg }));
+        } else {
+          setError(msg);
+        }
       }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error('Signup error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -168,6 +196,21 @@ const SignUp = () => {
                 aria-invalid={!!errors.email}
               />
               {errors.email && <small className="field-error">{errors.email}</small>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="phoneNumber">Phone Number (Optional)</label>
+              <input
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="Enter your phone number"
+                className={errors.phoneNumber ? 'input-error' : ''}
+                aria-invalid={!!errors.phoneNumber}
+              />
+              {errors.phoneNumber && <small className="field-error">{errors.phoneNumber}</small>}
             </div>
 
             <div className="form-group">

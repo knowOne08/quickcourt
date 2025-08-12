@@ -15,7 +15,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
 
-
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -42,30 +41,40 @@ const Login = () => {
     if (!validate()) return;
     setLoading(true);
 
-    const result = await login(formData.email, formData.password);
+    try {
+      const result = await login(formData.email, formData.password);
 
-    if (result.success) {
-      // Redirect based on user role
-      switch (result.user.role) {
-        case 'admin':
-          navigate('/admin/dashboard');
-          break;
-        case 'facility_owner':
-          navigate('/owner/dashboard');
-          break;
-        case 'user':
-        default:
-          navigate('/');
-          break;
+      if (result.success) {
+        // Redirect based on user role
+        const userRole = result.user?.role || 'user';
+        switch (userRole) {
+          case 'admin':
+            navigate('/admin/dashboard');
+            break;
+          case 'facility_owner':
+            navigate('/owner/dashboard');
+            break;
+          case 'user':
+          default:
+            navigate('/');
+            break;
+        }
+      } else {
+        const msg = result.message || 'Login failed';
+        if (/email/i.test(msg)) {
+          setErrors((prev) => ({ ...prev, email: msg }));
+        } else if (/password/i.test(msg) || /credentials/i.test(msg)) {
+          setErrors((prev) => ({ ...prev, password: msg }));
+        } else {
+          setError(msg);
+        }
       }
-    } else {
-      const msg = result.message || '';
-      if (/email/i.test(msg)) setErrors((prev) => ({ ...prev, email: msg }));
-      else if (/password/i.test(msg) || /credentials/i.test(msg)) setErrors((prev) => ({ ...prev, password: msg }));
-      else setError(msg);
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

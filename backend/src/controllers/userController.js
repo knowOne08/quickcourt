@@ -102,7 +102,7 @@ const updateProfile = async (req, res) => {
     if (avatar) updateFields.avatar = avatar;
 
     const user = await User.findByIdAndUpdate(
-      req.user.id,
+      req.user._id,
       updateFields,
       {
         new: true,
@@ -142,6 +142,69 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Change user password
+// @route   PATCH /api/users/change-password
+// @access  Private
+const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Old password and new password are required'
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be at least 8 characters long'
+      });
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user._id).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Verify old password
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        error: 'Old password is incorrect'
+      });
+    }
+
+    // Set new password (pre-save middleware will hash it automatically)
+    user.password = newPassword;
+    
+    // Set passwordChangedAt to current time
+    user.passwordChangedAt = Date.now();
+    
+    await user.save();
+
+    logger.info(`Password changed for user: ${user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully. Please log in again with your new password.'
+    });
+  } catch (error) {
+    logger.error(`Change password error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+};
+
 // @desc    Delete user account
 // @route   DELETE /api/users/account
 // @access  Private
@@ -157,7 +220,7 @@ const deleteAccount = async (req, res) => {
     }
 
     // Get user with password
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findById(req.user._id).select('+password');
 
     if (!user) {
       return res.status(404).json({
@@ -180,7 +243,7 @@ const deleteAccount = async (req, res) => {
     user.email = `deleted_${Date.now()}_${user.email}`;
     await user.save();
 
-    logger.info(`Account deactivated for user: ${req.user.id}`);
+    logger.info(`Account deactivated for user: ${req.user._id}`);
 
     res.status(200).json({
       success: true,
@@ -202,7 +265,7 @@ const getBookingHistory = async (req, res) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
 
-    const query = { user: req.user.id };
+    const query = { user: req.user._id };
     if (status) query.status = status;
 
     const bookings = await Booking.find(query)
@@ -239,7 +302,7 @@ const getBookingDetails = async (req, res) => {
   try {
     const booking = await Booking.findOne({
       _id: req.params.bookingId,
-      user: req.user.id
+      user: req.user._id
     }).populate('venue', 'name address city images category pricePerHour');
 
     if (!booking) {
@@ -267,7 +330,7 @@ const getBookingDetails = async (req, res) => {
 // @access  Private
 const getFavoriteVenues = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate('favoriteVenues', 'name address city images category pricePerHour rating');
+    const user = await User.findById(req.user._id).populate('favoriteVenues', 'name address city images category pricePerHour rating');
 
     if (!user) {
       return res.status(404).json({
@@ -305,7 +368,7 @@ const addFavoriteVenue = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
     if (!user.favoriteVenues) {
       user.favoriteVenues = [];
     }
@@ -342,7 +405,7 @@ const removeFavoriteVenue = async (req, res) => {
   try {
     const { venueId } = req.params;
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
     if (!user.favoriteVenues || !user.favoriteVenues.includes(venueId)) {
       return res.status(400).json({
         success: false,
@@ -374,13 +437,13 @@ const getUserReviews = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
-    const reviews = await Review.find({ user: req.user.id })
+    const reviews = await Review.find({ user: req.user._id })
       .populate('venue', 'name address city images')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    const total = await Review.countDocuments({ user: req.user.id });
+    const total = await Review.countDocuments({ user: req.user._id });
 
     res.status(200).json({
       success: true,
@@ -418,7 +481,7 @@ const createReview = async (req, res) => {
     }
 
     // Check if user has already reviewed this venue
-    const existingReview = await Review.findOne({ user: req.user.id, venue: venueId });
+    const existingReview = await Review.findOne({ user: req.user._id, venue: venueId });
     if (existingReview) {
       return res.status(400).json({
         success: false,
@@ -427,7 +490,7 @@ const createReview = async (req, res) => {
     }
 
     const review = await Review.create({
-      user: req.user.id,
+      user: req.user._id,
       venue: venueId,
       rating,
       comment
@@ -460,7 +523,7 @@ const updateReview = async (req, res) => {
 
     const review = await Review.findOne({
       _id: req.params.reviewId,
-      user: req.user.id
+      user: req.user._id
     });
 
     if (!review) {
@@ -500,7 +563,7 @@ const deleteReview = async (req, res) => {
   try {
     const review = await Review.findOneAndDelete({
       _id: req.params.reviewId,
-      user: req.user.id
+      user: req.user._id
     });
 
     if (!review) {
@@ -528,7 +591,7 @@ const deleteReview = async (req, res) => {
 // @access  Private
 const getPreferences = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('preferences');
+    const user = await User.findById(req.user._id).select('preferences');
 
     const defaultPreferences = {
       notifications: {
@@ -565,7 +628,7 @@ const getPreferences = async (req, res) => {
 const updatePreferences = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
-      req.user.id,
+      req.user._id,
       { preferences: req.body },
       { new: true, runValidators: true }
     ).select('preferences');
@@ -584,12 +647,140 @@ const updatePreferences = async (req, res) => {
   }
 };
 
+// @desc    Get user notifications
+// @route   GET /api/users/notifications
+// @access  Private
+const getNotifications = async (req, res) => {
+  try {
+    // For now, return mock notifications
+    // In a real app, you'd have a Notification model
+    const mockNotifications = [
+      {
+        _id: '1',
+        type: 'booking_confirmed',
+        title: 'Booking Confirmed',
+        message: 'Your booking at SRK Badminton Academy has been confirmed',
+        isRead: false,
+        createdAt: new Date()
+      },
+      {
+        _id: '2',
+        type: 'booking_reminder',
+        title: 'Booking Reminder',
+        message: 'You have a booking tomorrow at 2:00 PM',
+        isRead: true,
+        createdAt: new Date(Date.now() - 86400000)
+      }
+    ];
+
+    res.status(200).json({
+      success: true,
+      notifications: mockNotifications
+    });
+  } catch (error) {
+    logger.error(`Get notifications error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+};
+
+// @desc    Mark notification as read
+// @route   PATCH /api/users/notifications/:notificationId/read
+// @access  Private
+const markNotificationRead = async (req, res) => {
+  try {
+    // In a real app, you'd update the notification in the database
+    res.status(200).json({
+      success: true,
+      message: 'Notification marked as read'
+    });
+  } catch (error) {
+    logger.error(`Mark notification read error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+};
+
+// @desc    Get user payment methods
+// @route   GET /api/users/payment-methods
+// @access  Private
+const getPaymentMethods = async (req, res) => {
+  try {
+    // For now, return mock payment methods
+    // In a real app, you'd have a PaymentMethod model
+    const mockPaymentMethods = [
+      {
+        _id: '1',
+        type: 'card',
+        last4: '4242',
+        brand: 'Visa',
+        expiryMonth: 12,
+        expiryYear: 2025,
+        isDefault: true
+      }
+    ];
+
+    res.status(200).json({
+      success: true,
+      paymentMethods: mockPaymentMethods
+    });
+  } catch (error) {
+    logger.error(`Get payment methods error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+};
+
+// @desc    Add payment method
+// @route   POST /api/users/payment-methods
+// @access  Private
+const addPaymentMethod = async (req, res) => {
+  try {
+    // In a real app, you'd integrate with a payment processor
+    res.status(201).json({
+      success: true,
+      message: 'Payment method added successfully'
+    });
+  } catch (error) {
+    logger.error(`Add payment method error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+};
+
+// @desc    Remove payment method
+// @route   DELETE /api/users/payment-methods/:methodId
+// @access  Private
+const removePaymentMethod = async (req, res) => {
+  try {
+    // In a real app, you'd remove the payment method from the database
+    res.status(200).json({
+      success: true,
+      message: 'Payment method removed successfully'
+    });
+  } catch (error) {
+    logger.error(`Remove payment method error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+};
+
 // @desc    Get user statistics
 // @route   GET /api/users/stats
 // @access  Private
 const getUserStats = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     const [
       totalBookings,
@@ -635,6 +826,7 @@ module.exports = {
   getProfile,
   getPublicProfile,
   updateProfile,
+  changePassword,
   deleteAccount,
   getBookingHistory,
   getBookingDetails,
@@ -647,5 +839,10 @@ module.exports = {
   deleteReview,
   getPreferences,
   updatePreferences,
+  getNotifications,
+  markNotificationRead,
+  getPaymentMethods,
+  addPaymentMethod,
+  removePaymentMethod,
   getUserStats
 };

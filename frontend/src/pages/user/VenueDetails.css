@@ -50,6 +50,53 @@
 
 .load-more { color:#6366f1; background:transparent; border:none; text-decoration:underline; cursor:pointer; }
 
+/* Courts Section */
+.courts-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+.court-card { border:1px solid var(--border); border-radius:12px; padding:16px; background:var(--surface); transition:all 0.2s ease; }
+.court-card:hover { box-shadow:0 4px 12px rgba(17,24,39,.1); transform:translateY(-2px); }
+.court-name { font-weight:700; font-size:1.1rem; margin-bottom:8px; color:var(--text); }
+.court-details { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.court-sport { background:var(--primary); color:white; padding:4px 8px; border-radius:6px; font-size:0.85rem; font-weight:600; }
+.court-price { font-weight:700; color:#10b981; font-size:1rem; }
+.court-info { display:flex; gap:8px; margin-bottom:8px; }
+.court-type, .court-surface { background:#f3f4f6; color:var(--muted); padding:2px 6px; border-radius:4px; font-size:0.75rem; text-transform:capitalize; }
+.court-amenities { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.court-amenity { background:#f3f4f6; color:var(--muted); padding:4px 8px; border-radius:6px; font-size:0.8rem; }
+.court-rating { color:var(--muted); font-size:0.85rem; }
+
+/* Sports Section */
+.sport-tile { width:120px; height:84px; border:1px solid var(--border); border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#fafafa; font-weight:700; cursor:pointer; transition:all 0.2s ease; }
+.sport-tile:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(17,24,39,.1); }
+.sport-tile.active { outline:2px solid #c7d2fe; border-color:#a5b4fc; background:#f3f4ff; }
+.sport-icon { font-size:1.5rem; margin-bottom:4px; }
+.sport-name { font-size:0.75rem; text-align:center; line-height:1.2; }
+
+/* Description */
+.venue-description { color:var(--text); line-height:1.6; margin:0; }
+
+/* Contact & Policies */
+.contact-policies-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:16px; }
+.contact-card, .policies-card { border:1px solid var(--border); border-radius:12px; padding:16px; background:var(--surface); }
+.contact-card h4, .policies-card h4 { margin:0 0 12px 0; color:var(--text); font-size:1rem; }
+.contact-card p, .policies-card p { margin:4px 0; color:var(--muted); font-size:0.9rem; }
+
+/* Stats */
+.stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:16px; }
+.stat-card { text-align:center; padding:16px; border:1px solid var(--border); border-radius:12px; background:var(--surface); }
+.stat-number { font-size:1.5rem; font-weight:700; color:var(--primary); margin-bottom:4px; }
+.stat-label { font-size:0.85rem; color:var(--muted); }
+
+/* Loading and Error States */
+.loading-state, .error-state { 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  min-height:400px; 
+  font-size:1.2rem; 
+  color:var(--muted); 
+}
+.error-state { color:#dc2626; }
+
 @media (max-width: 980px){ .top-grid { grid-template-columns: 1fr; } }
 @media (max-width: 720px){ .amenities-grid { grid-template-columns: repeat(2, 1fr);} }
 
