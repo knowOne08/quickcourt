@@ -60,7 +60,6 @@ router.get('/refunds/:refundId',
 
 // Webhook endpoint (no authentication required, but signature verification)
 router.post('/webhook', 
-  express.raw({ type: 'application/json' }),
   verifyWebhookSignature,
   paymentController.handleWebhook
 );

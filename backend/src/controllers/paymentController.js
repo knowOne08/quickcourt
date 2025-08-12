@@ -61,7 +61,7 @@ const sanitizeReceipt = (receipt) => {
 
 exports.createPaymentOrder = async (req, res) => {
   try {
-    const { bookingId, amount, currency = 'INR' } = req.body;
+    let { bookingId, amount, currency = 'INR', venue, court, date, startTime, endTime, duration, venueName, courtName } = req.body;
     const userId = req.user.id;
 
     // Security: Input validation
@@ -79,34 +79,68 @@ exports.createPaymentOrder = async (req, res) => {
       });
     }
 
-    // Security: Verify booking ownership and status
-    const booking = await Booking.findById(bookingId).populate('user');
-    if (!booking) {
-      logger.warn(`Payment attempt for non-existent booking: ${bookingId} by user: ${userId}`);
-      return res.status(404).json({
-        status: 'error',
-        message: 'Booking not found'
-      });
-    }
+    // Check if it's a temporary booking ID (new booking flow)
+    const isTemporaryBooking = bookingId.startsWith('booking_');
+    let booking = null;
 
-    if (booking.user._id.toString() !== userId) {
-      logger.warn(`Unauthorized payment attempt for booking: ${bookingId} by user: ${userId}`);
-      return res.status(403).json({
-        status: 'error',
-        message: 'Not authorized to create payment for this booking'
-      });
-    }
+    if (isTemporaryBooking) {
+      // For temporary bookings, validate that we have all required booking data
+      if (!venue || !court || !date || !startTime || !endTime || !duration) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Missing booking details for new booking'
+        });
+      }
 
-    if (booking.status !== 'pending') {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Booking is not in pending status'
+      // Create the booking first
+      booking = new Booking({
+        user: userId,
+        venue,
+        court,
+        date: new Date(date),
+        startTime,
+        endTime,
+        duration,
+        totalAmount: amount,
+        status: 'pending'
       });
+
+      await booking.save();
+      
+      // Update bookingId to the real MongoDB ID for payment processing
+      bookingId = booking._id;
+      
+      logger.info(`Created new booking: ${booking._id} for temporary ID: ${req.body.bookingId}`);
+    } else {
+      // Security: Verify booking ownership and status for existing bookings
+      booking = await Booking.findById(bookingId).populate('user');
+      if (!booking) {
+        logger.warn(`Payment attempt for non-existent booking: ${bookingId} by user: ${userId}`);
+        return res.status(404).json({
+          status: 'error',
+          message: 'Booking not found'
+        });
+      }
+
+      if (booking.user._id.toString() !== userId) {
+        logger.warn(`Unauthorized payment attempt for booking: ${bookingId} by user: ${userId}`);
+        return res.status(403).json({
+          status: 'error',
+          message: 'Not authorized to create payment for this booking'
+        });
+      }
+
+      if (booking.status !== 'pending') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Booking is not in pending status'
+        });
+      }
     }
 
     // Security: Check for duplicate payments
     const existingPayment = await Payment.findOne({
-      booking: bookingId,
+      booking: booking._id,
       status: { $in: ['pending', 'completed'] }
     });
 
@@ -779,6 +813,94 @@ exports.getRevenueReport = async (req, res) => {
       status: 'error',
       message: error.message
     });
+  }
+};
+
+// Webhook handler for Razorpay events
+exports.handleWebhook = async (req, res) => {
+  try {
+    const webhookBody = req.body;
+    const signature = req.get('X-Razorpay-Signature');
+
+    logger.info('Webhook received:', {
+      event: webhookBody.event,
+      paymentId: webhookBody.payload?.payment?.entity?.id,
+      signature: signature ? 'present' : 'missing'
+    });
+
+    // Process different webhook events
+    switch (webhookBody.event) {
+      case 'payment.captured':
+        await handlePaymentCaptured(webhookBody.payload.payment.entity);
+        break;
+      
+      case 'payment.failed':
+        await handlePaymentFailed(webhookBody.payload.payment.entity);
+        break;
+      
+      case 'refund.processed':
+        await handleRefundProcessed(webhookBody.payload.refund.entity);
+        break;
+      
+      default:
+        logger.info(`Unhandled webhook event: ${webhookBody.event}`);
+    }
+
+    res.status(200).json({ status: 'ok' });
+  } catch (error) {
+    logger.error('Webhook processing error:', error);
+    res.status(400).json({
+      status: 'error',
+      message: 'Webhook processing failed'
+    });
+  }
+};
+
+// Helper functions for webhook processing
+const handlePaymentCaptured = async (paymentEntity) => {
+  try {
+    await Payment.findOneAndUpdate(
+      { razorpayPaymentId: paymentEntity.id },
+      { 
+        status: 'completed',
+        razorpaySignature: paymentEntity.id,
+        completedAt: new Date()
+      }
+    );
+    logger.info(`Payment captured: ${paymentEntity.id}`);
+  } catch (error) {
+    logger.error('Error handling payment captured:', error);
+  }
+};
+
+const handlePaymentFailed = async (paymentEntity) => {
+  try {
+    await Payment.findOneAndUpdate(
+      { razorpayPaymentId: paymentEntity.id },
+      { 
+        status: 'failed',
+        failureReason: paymentEntity.error_description
+      }
+    );
+    logger.info(`Payment failed: ${paymentEntity.id}`);
+  } catch (error) {
+    logger.error('Error handling payment failed:', error);
+  }
+};
+
+const handleRefundProcessed = async (refundEntity) => {
+  try {
+    await Payment.findOneAndUpdate(
+      { razorpayPaymentId: refundEntity.payment_id },
+      { 
+        status: 'refunded',
+        refundAmount: refundEntity.amount / 100,
+        refundId: refundEntity.id
+      }
+    );
+    logger.info(`Refund processed: ${refundEntity.id}`);
+  } catch (error) {
+    logger.error('Error handling refund processed:', error);
   }
 };
 

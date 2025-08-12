@@ -168,7 +168,7 @@ exports.createVenue = async (req, res) => {
 
     // For development: auto-approve venues if in development mode
     if (process.env.NODE_ENV === 'development') {
-      venue.status = 'approved';
+      venue.status = 'pending';
       venue.approvedAt = new Date();
       venue.approvedBy = ownerId; // Self-approved for development
       await venue.save();
