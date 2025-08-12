@@ -12,14 +12,29 @@ const TimeSlotSelector = ({
 }) => {
   const [filteredSlots, setFilteredSlots] = useState([]);
 
+  console.log('TimeSlotSelector received props:', {
+    availableSlots,
+    slotsLength: availableSlots?.length,
+    slotsType: typeof availableSlots,
+    isArray: Array.isArray(availableSlots)
+  });
+
   useEffect(() => {
+    console.log('TimeSlotSelector - useEffect triggered:', {
+      availableSlots: availableSlots?.length,
+      selectedDuration,
+      slotsData: availableSlots
+    });
+    
     if (availableSlots && availableSlots.length > 0) {
+
+      console.log('Available slots:', availableSlots);
       // Filter slots that can accommodate the selected duration
       const filtered = availableSlots.filter(slot => {
         if (!slot.available) return false;
         
         // For single slot bookings (60 minutes or less)
-        if (selectedDuration <= 60) {
+        if (selectedDuration <= 70) {
           return true;
         }
         
@@ -38,7 +53,16 @@ const TimeSlotSelector = ({
         return true;
       });
       
+      console.log('TimeSlotSelector - Filtered slots:', {
+        original: availableSlots.length,
+        filtered: filtered.length,
+        filteredData: filtered
+      });
+      
       setFilteredSlots(filtered);
+    } else {
+      console.log('TimeSlotSelector - No available slots to filter');
+      setFilteredSlots([]);
     }
   }, [availableSlots, selectedDuration]);
 
@@ -85,8 +109,37 @@ const TimeSlotSelector = ({
     return true;
   };
 
+  const calculateEndTime = (startTime, durationMinutes) => {
+    try {
+      const startDate = new Date(`2000-01-01T${startTime}`);
+      const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+      return endDate.toTimeString().slice(0, 5);
+    } catch (error) {
+      console.error('Error calculating end time:', error, { startTime, durationMinutes });
+      return startTime; // fallback to start time
+    }
+  };
+
   const formatTime = (time) => {
-    const [hours, minutes] = time.split(':');
+    // Handle both string and number inputs
+    if (typeof time === 'number') {
+      // If it's a timestamp, convert to time string
+      const date = new Date(time);
+      time = date.toTimeString().slice(0, 5);
+    }
+    
+    if (typeof time !== 'string') {
+      console.error('formatTime received invalid input:', time, typeof time);
+      return '00:00';
+    }
+
+    const parts = time.split(':');
+    if (parts.length < 2) {
+      console.error('formatTime: invalid time format:', time);
+      return '00:00';
+    }
+
+    const [hours, minutes] = parts;
     const hour = parseInt(hours);
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
@@ -136,7 +189,7 @@ const TimeSlotSelector = ({
                 <span className="start-time">{formatTime(slot.startTime)}</span>
                 <span className="time-separator">-</span>
                 <span className="end-time">
-                  {formatTime(new Date(`2000-01-01T${slot.startTime}`).getTime() + selectedDuration * 60000).toTimeString().slice(0, 5)}
+                  {formatTime(calculateEndTime(slot.startTime, selectedDuration))}
                 </span>
               </div>
               <div className="slot-price">

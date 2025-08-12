@@ -7,6 +7,8 @@ import './BookingPage.css';
 const BookingPage = () => {
   const { venueId } = useParams();
 
+  console.log(venueId)
+
   const handleBookingSuccess = (booking) => {
     // Handle successful booking - could redirect or show success message
     console.log('Booking created successfully:', booking);

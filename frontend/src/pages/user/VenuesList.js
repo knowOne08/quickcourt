@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVenues } from '../../hooks/useVenues';
+import SearchWithSuggestions from '../../components/common/SearchWithSuggestions';
 import './VenuesList.css';
 
 const VenuesList = () => {
@@ -20,6 +21,7 @@ const VenuesList = () => {
     pagination,
     fetchVenues,
     searchVenues,
+    getSearchSuggestions,
     updateFilters,
     clearFilters
   } = useVenues(filters);
@@ -31,10 +33,18 @@ const VenuesList = () => {
   };
 
   const handleSearch = () => {
-    if (filters.search.trim()) {
-      searchVenues(filters);
-    } else {
-      fetchVenues(filters);
+    searchVenues(filters);
+  };
+
+  const handleSuggestionSelect = (suggestion) => {
+    if (suggestion.type === 'venue') {
+      // Navigate directly to venue if a specific venue was selected
+      navigate(`/venue/${suggestion.id}`);
+    } else if (suggestion.type === 'location') {
+      // Update search with the selected location and perform search
+      const updatedFilters = { ...filters, search: suggestion.value || suggestion.text };
+      setFilters(updatedFilters);
+      searchVenues(updatedFilters);
     }
   };
 
@@ -94,16 +104,16 @@ const VenuesList = () => {
       {/* Sidebar */}
       <aside className="venues-sidebar">
         <div className="sidebar-section">
-          <label htmlFor="search-venue">Search by venue name</label>
-          <input
-            id="search-venue"
-            type="text"
-            placeholder="Search for venue"
+          <label htmlFor="search-venue">Search by venue name or location</label>
+          <SearchWithSuggestions
             value={filters.search}
-            onChange={(e) => handleFilterChange({ search: e.target.value })}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            onChange={(value) => handleFilterChange({ search: value })}
+            onSearch={handleSearch}
+            onSuggestionSelect={handleSuggestionSelect}
+            getSuggestions={getSearchSuggestions}
+            placeholder="Search venues, areas, or cities..."
+            className="venue-search"
           />
-          <button onClick={handleSearch} className="search-btn">Search</button>
         </div>
         
         <div className="sidebar-section">

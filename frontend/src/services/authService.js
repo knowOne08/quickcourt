@@ -29,9 +29,9 @@ export const authService = {
     newPassword
   }),
 
-  // User profile (backend exposes these under /users)
+  // User profile
   getCurrentUser: async () => {
-    const response = await api.get('/users/profile');
+    const response = await api.get('/auth/me');
     return response;
   },
 
@@ -62,7 +62,7 @@ export const authService = {
   verifyTwoFactor: (code) => api.post('/auth/2fa/verify', { code }),
 
   // Session management
-  refreshToken: () => api.post('/auth/refresh-token'),
+  refreshToken: () => api.post('/auth/refresh'),
   getAllSessions: () => api.get('/auth/sessions'),
   terminateSession: (sessionId) => api.delete(`/auth/sessions/${sessionId}`),
   terminateAllSessions: () => api.delete('/auth/sessions/all')

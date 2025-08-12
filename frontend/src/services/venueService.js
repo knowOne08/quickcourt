@@ -100,5 +100,15 @@ export const venueService = {
   // Get venue bookings (owner only)
   getVenueBookings: (id) => {
     return api.get(`/venues/${id}/bookings`);
-  }
+  },
+
+  // Get search suggestions
+  getSearchSuggestions: (query, limit = 5) => {
+    return api.get('/venues/suggestions', { params: { q: query, limit } });
+  },
+
+  // Enhanced search with multiple parameters
+  enhancedSearch: (params = {}) => {
+    return api.get('/venues', { params });
+  },
 };

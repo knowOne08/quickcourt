@@ -65,45 +65,67 @@ export const useVenues = (initialFilters = {}) => {
     setError(null);
     
     try {
-      // If there's a search query, use search endpoint
-      if (searchParams.search && searchParams.search.trim()) {
-        // Convert frontend params to backend expected params
-        const backendParams = {
-          q: searchParams.search.trim(), // Backend expects 'q' not 'search'
-          sport: searchParams.sport || undefined,
-          page: searchParams.page || 1,
-          limit: searchParams.limit || 12
-        };
-        
-        // Remove undefined values
-        Object.keys(backendParams).forEach(key => {
-          if (backendParams[key] === undefined) {
-            delete backendParams[key];
-          }
-        });
-        
-        const response = await venueService.searchVenues(backendParams);
-
-        if (response.data?.status === 'success') {
-          setVenues(response.data.data.venues);
-          setPagination({
-            currentPage: response.data.data.currentPage || 1,
-            totalPages: response.data.data.totalPages || 1,
-            total: response.data.data.total || 0
-          });
-        } else {
-          throw new Error('Failed to search venues');
+      // Use enhanced search that supports both text search and filters
+      const backendParams = {
+        search: searchParams.search?.trim() || undefined,
+        city: searchParams.city || undefined,
+        sport: searchParams.sport || undefined,
+        minPrice: searchParams.minPrice || undefined,
+        maxPrice: searchParams.maxPrice || undefined,
+        rating: searchParams.rating || undefined,
+        page: searchParams.page || 1,
+        limit: searchParams.limit || 12,
+        sortBy: searchParams.sortBy || 'rating.average',
+        sortOrder: searchParams.sortOrder || 'desc'
+      };
+      
+      // Remove undefined values
+      Object.keys(backendParams).forEach(key => {
+        if (backendParams[key] === undefined || backendParams[key] === '' || backendParams[key] === 0) {
+          delete backendParams[key];
         }
+      });
+
+      let response;
+      
+      // If there's a search query, use the enhanced search
+      if (backendParams.search) {
+        response = await venueService.enhancedSearch(backendParams);
       } else {
-        // If no search query, use regular fetch
-        await fetchVenues(searchParams);
+        // Otherwise use regular filtering
+        response = await venueService.getAllVenues(backendParams);
+      }
+
+      if (response.data?.status === 'success') {
+        setVenues(response.data.data.venues);
+        setPagination({
+          currentPage: response.data.data.currentPage || 1,
+          totalPages: response.data.data.totalPages || 1,
+          total: response.data.data.total || 0
+        });
+      } else {
+        throw new Error('Failed to search venues');
       }
     } catch (err) {
       setError(err.message || 'Failed to search venues');
     } finally {
       setLoading(false);
     }
-  }, [fetchVenues]);
+  }, []);
+
+  const getSearchSuggestions = useCallback(async (query) => {
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+    
+    try {
+      const response = await venueService.getSearchSuggestions(query.trim());
+      return response.data?.data?.suggestions || [];
+    } catch (err) {
+      console.error('Error fetching suggestions:', err);
+      return [];
+    }
+  }, []);
 
   const getTopVenues = useCallback(async (limit = 6) => {
     setLoading(true);
@@ -161,6 +183,7 @@ export const useVenues = (initialFilters = {}) => {
     fetchVenues,
     searchVenues,
     getTopVenues,
+    getSearchSuggestions,
     updateFilters,
     clearFilters
   };
