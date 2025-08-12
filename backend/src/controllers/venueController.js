@@ -1,3 +1,33 @@
+// @desc    Get venues near a location (within radius in KM)
+// @route   GET /api/venues/nearby?lat=..&lng=..&radius=..
+// @access  Public
+exports.getNearbyVenues = async (req, res) => {
+  try {
+    const { lat, lng, radius = 20, limit = 20 } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ status: 'error', message: 'Latitude and longitude required.' });
+    }
+    // Use Venue.find() with $near for geospatial query
+    const venues = await Venue.find({
+      'location.coordinates': {
+        $near: {
+          $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+          $maxDistance: parseFloat(radius) * 1000
+        }
+      },
+      status: 'approved',
+      isActive: true
+    })
+      .limit(parseInt(limit))
+      .populate('owner', 'name ownerProfile.businessName')
+      .populate('courts', 'name sport pricePerHour')
+      .lean();
+
+    res.status(200).json({ status: 'success', data: { venues } });
+  } catch (error) {
+    res.status(400).json({ status: 'error', message: error.message });
+  }
+};
 const Venue = require('../models/Venue');
 const Court = require('../models/Court');
 const Review = require('../models/Review');
