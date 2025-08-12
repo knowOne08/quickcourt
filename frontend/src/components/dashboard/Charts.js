@@ -74,26 +74,29 @@ const Charts = ({ type, data, options }) => {
   // Apply Odoo color scheme to data
   const styledData = {
     ...data,
-    datasets: data.datasets?.map((dataset, index) => ({
-      ...dataset,
-      backgroundColor: [
-        '#714B67', // Odoo primary
-        '#017E84', // Odoo secondary
-        '#21B799', // Ready partner
-        '#E4A900', // Gold partner
-        '#E46E78', // Learning partner
-        '#5B899E'  // Silver partner
-      ][index % 6],
-      borderColor: [
-        '#714B67',
-        '#017E84',
-        '#21B799',
-        '#E4A900',
-        '#E46E78',
-        '#5B899E'
-      ][index % 6],
-      borderWidth: 2
-    }))
+    datasets: Array.isArray(data?.datasets)
+      ? data.datasets.map((dataset, index) => ({
+          ...dataset,
+          backgroundColor: [
+            '#714B67', // Odoo primary
+            '#017E84', // Odoo secondary
+            '#21B799', // Ready partner
+            '#E4A900', // Gold partner
+            '#E46E78', // Learning partner
+            '#5B899E'  // Silver partner
+          ][index % 6],
+          borderColor: [
+            '#714B67',
+            '#017E84',
+            '#21B799',
+            '#E4A900',
+            '#E46E78',
+            '#5B899E'
+          ][index % 6],
+          borderWidth: 2
+        })
+        )
+      : []
   };
 
   switch (type) {

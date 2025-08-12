@@ -55,7 +55,7 @@ const OwnerDashboard = () => {
     <div className="owner-dashboard">
       <div className="dashboard-header">
         <h1>Facility Owner Dashboard</h1>
-        <p>Welcome back, {user?.fullName}!</p>
+        <p>Welcome back, {user?.name}!</p>
         
         <div className="time-range-selector">
           <select 

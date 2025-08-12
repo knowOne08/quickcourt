@@ -2,14 +2,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { venueService } from '../../services/venueService';
+import VenueMap from '../../components/VenueMap';
 import './Home.css';
 
+const getUserLocation = () => {
+  return new Promise((resolve, reject) => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => reject(err)
+      );
+    } else {
+      reject(new Error('Geolocation not supported'));
+    }
+  });
+};
 const Home = () => {
   const [selectedLocation, setSelectedLocation] = useState('Ahmedabad');
   const [venues, setVenues] = useState([]);
   const [topVenues, setTopVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationPrompted, setLocationPrompted] = useState(false);
   const navigate = useNavigate();
 
   // Popular sports data (static since it's just for display)
@@ -17,22 +32,42 @@ const Home = () => {
   
 
   useEffect(() => {
-    fetchVenues();
-    fetchTopVenues();
-  }, [selectedLocation]);
+    if (!locationPrompted) {
+      getUserLocation()
+        .then((loc) => {
+          setUserLocation(loc);
+          setLocationPrompted(true);
+        })
+        .catch(() => {
+          setLocationPrompted(true);
+        });
+    } else {
+      fetchVenues();
+      fetchTopVenues();
+    }
+    // eslint-disable-next-line
+  }, [selectedLocation, userLocation, locationPrompted]);
 
   const fetchVenues = async () => {
     try {
       setLoading(true);
-      const response = await venueService.getAllVenues({
-        city: selectedLocation,
-        limit: 8
-      });
-
-      if (response.data?.status === 'success') {
-        setVenues(response.data.data.venues);
+      let response;
+      if (userLocation) {
+        response = await fetch(`${process.env.REACT_APP_API_URL}/venues/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=20`);
+        response = await response.json();
+        if (response.status === 'success') {
+          setVenues(response.data.venues);
+        } else {
+          setError('Failed to fetch nearby venues');
+        }
       } else {
-        setError('Failed to fetch venues');
+        // fallback to city
+        const res = await venueService.getAllVenues({ city: selectedLocation, limit: 8 });
+        if (res.data?.status === 'success') {
+          setVenues(res.data.data.venues);
+        } else {
+          setError('Failed to fetch venues');
+        }
       }
     } catch (err) {
       console.error('Error fetching venues:', err);
@@ -87,34 +122,32 @@ const Home = () => {
 
   return (
     <div className="home-page">
-      {/* Header Section */}
+      {/* Header Section with Map Side by Side */}
       <div className="header-section">
-        <div className="header-content">
-          <div className="location-selector">
-            <div className="location-icon">📍</div>
-            <select
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="location-dropdown"
-            >
-              <option value="Ahmedabad">Ahmedabad</option>
-              <option value="Mumbai">Mumbai</option>
-              <option value="Delhi">Delhi</option>
-              <option value="Bangalore">Bangalore</option>
-              <option value="Chennai">Chennai</option>
-              <option value="Hyderabad">Hyderabad</option>
-            </select>
-          </div>
-
+        <div className="header-content header-content-with-map">
           <div className="search-section">
             <h1>FIND PLAYERS & VENUES NEARBY</h1>
             <p>Seamlessly explore sports venues and play with sports enthusiasts just like you</p>
-          </div>
-
-          <div className="map-placeholder">
-            <div className="map-content">
-              <span>IMAGE</span>
+            <div className="location-selector">
+              <div className="location-icon">📍</div>
+              {!userLocation && (
+                <select
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  className="location-dropdown"
+                >
+                  <option value="Ahmedabad">Ahmedabad</option>
+                  <option value="Mumbai">Mumbai</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Bangalore">Bangalore</option>
+                  <option value="Chennai">Chennai</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                </select>
+              )}
             </div>
+          </div>
+          <div className="map-embed">
+            <VenueMap venues={venues} center={userLocation ? [userLocation.lat, userLocation.lng] : undefined} />
           </div>
         </div>
       </div>
@@ -125,6 +158,8 @@ const Home = () => {
           <h2>Book Venues</h2>
           <a href="/venues" className="see-all-link">See all venues →</a>
         </div>
+
+  {/* Venue Map removed from here, now in header */}
 
         {loading ? (
           <div className="loading-state">
@@ -152,7 +187,11 @@ const Home = () => {
                       </div>
                     </div>
                     <p className="venue-location">📍 {formatLocation(venue.location)}</p>
-
+                    {venue.distance && (
+                      <span className="venue-distance" style={{ color: '#875A7B', fontWeight: 500, fontSize: '0.95rem' }}>
+                        {(venue.distance / 1000).toFixed(1)} km away
+                      </span>
+                    )}
                     <div className="venue-amenities">
                       {venue.sports && venue.sports.slice(0, 2).map((sport, index) => (
                         <span key={index} className="amenity-tag">
@@ -174,13 +213,24 @@ const Home = () => {
                       >
                         View Details
                       </button>
+                      {venue.location?.coordinates && (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${venue.location.coordinates[1]},${venue.location.coordinates[0]}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="map-link"
+                          style={{ marginLeft: 10, color: '#875A7B', fontWeight: 500, fontSize: '0.95rem', textDecoration: 'underline' }}
+                        >
+                          View on Google Maps
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
               ))
             ) : (
               <div className="no-venues-message">
-                <p>No venues found in {selectedLocation}. Try another location or check back later.</p>
+                <p>No venues found nearby. Try another location or check back later.</p>
               </div>
             )}
           </div>

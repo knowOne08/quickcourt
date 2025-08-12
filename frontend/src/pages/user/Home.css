@@ -22,6 +22,33 @@
   margin: 0 auto;
 }
 
+.header-content-with-map {
+  display: flex;
+  flex-direction: row;
+  gap: 40px;
+}
+
+.map-embed {
+  flex: 1 1 400px;
+  min-width: 320px;
+  max-width: 600px;
+  display: flex;
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .header-content-with-map {
+    flex-direction: column;
+    gap: 24px;
+  }
+  .map-embed {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    margin-top: 16px;
+  }
+}
+
 .location-selector {
   display: flex;
   align-items: center;
@@ -70,6 +97,7 @@
   margin: 0;
 }
 
+
 .map-placeholder {
   width: 200px;
   height: 150px;
@@ -86,6 +114,7 @@
   color: var(--odoo-gray);
   font-weight: 500;
 }
+/* Remove old map-placeholder styles */
 
 .venue-data{
   display: flex;
