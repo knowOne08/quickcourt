@@ -282,6 +282,42 @@
   font-weight: 500;
 }
 
+/* Enhanced search styles for VenuesList */
+.venue-search {
+  margin-bottom: 0.5rem;
+}
+
+.venue-search .search-input-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.venue-search .search-input-container:focus-within {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.venue-search .search-input {
+  padding: 0.75rem;
+  font-size: 14px;
+}
+
+.venue-search .search-button {
+  background: #007bff;
+  padding: 0.75rem 1rem;
+  font-size: 14px;
+}
+
+.venue-search .search-button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.venue-search .suggestions-dropdown {
+  border-radius: 0 0 8px 8px;
+  font-size: 14px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .venues-list-layout {

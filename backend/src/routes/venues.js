@@ -24,6 +24,7 @@ router.get('/debug/all', async (req, res) => {
 router.get('/', venueController.getAllVenues);
 router.get('/top', venueController.getTopVenues);
 router.get('/search', venueController.searchVenues);
+router.get('/suggestions', venueController.getSearchSuggestions);
 router.get('/cities', venueController.getVenueCities);
 router.get('/sports', venueController.getAvailableSports);
 router.get('/:id', venueController.getVenueById);

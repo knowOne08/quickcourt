@@ -1,7 +1,7 @@
 // frontend/src/components/booking/PaymentSection.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useBooking } from '../../context/BookingContext';
+import { useSecurePayment } from '../../hooks/useSecurePayment';
 import './PaymentSection.css';
 
 const PaymentSection = ({ 
@@ -11,26 +11,74 @@ const PaymentSection = ({
   bookingDetails = null 
 }) => {
   const { user } = useAuth();
-  const { createBooking, loading, error } = useBooking();
+  const {
+    loading: paymentLoading,
+    error: paymentError,
+    paymentState,
+    securityValidation,
+    isSecurityValid,
+    processPayment,
+    resetPaymentState
+  } = useSecurePayment();
+
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('razorpay');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Set up booking session for security
+  useEffect(() => {
+    if (bookingDetails) {
+      sessionStorage.setItem('bookingSession', JSON.stringify({
+        bookingId: bookingDetails.bookingId,
+        amount: totalAmount,
+        timestamp: Date.now()
+      }));
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (paymentState.status !== 'completed') {
+        sessionStorage.removeItem('bookingSession');
+      }
+    };
+  }, [bookingDetails, totalAmount, paymentState.status]);
 
   const handleCreateBooking = async () => {
     if (!bookingDetails) {
-      console.error('No booking details provided');
+      return;
+    }
+
+    if (!isSecurityValid) {
+      return;
+    }
+
+    if (!termsAccepted) {
       return;
     }
 
     try {
-      const result = await createBooking(bookingDetails);
+      const paymentData = {
+        bookingId: bookingDetails.bookingId || bookingDetails.id,
+        amount: totalAmount,
+        currency: 'INR',
+        venueName: bookingDetails.venueName,
+        ...bookingDetails
+      };
+
+      const result = await processPayment(paymentData);
+      
       if (result.success) {
         setShowConfirmation(true);
-        // Redirect to confirmation page or show success message
+        // Clear sensitive data
+        sessionStorage.removeItem('bookingSession');
+        
+        // Redirect after delay
         setTimeout(() => {
           window.location.href = '/my-bookings';
-        }, 2000);
+        }, 3000);
       }
     } catch (error) {
-      console.error('Error creating booking:', error);
+      console.error('Payment processing error:', error);
     }
   };
 
@@ -54,11 +102,16 @@ const PaymentSection = ({
 
   const formatTime = (time) => {
     if (!time) return '';
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    return `${displayHour}:${minutes} ${ampm}`;
+    try {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${displayHour}:${minutes} ${ampm}`;
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return time;
+    }
   };
 
   if (showConfirmation) {
@@ -66,11 +119,15 @@ const PaymentSection = ({
       <div className="payment-section confirmation">
         <div className="confirmation-content">
           <div className="success-icon">✓</div>
-          <h3>Booking Confirmed!</h3>
-          <p>Your booking has been successfully created.</p>
+          <h3>Payment Successful!</h3>
+          <p>Your booking has been confirmed and payment processed.</p>
           <p>You will receive a confirmation email shortly.</p>
+          <div className="booking-confirmation-details">
+            <p><strong>Booking ID:</strong> {bookingDetails?.bookingId || 'Generating...'}</p>
+            <p><strong>Amount Paid:</strong> {formatCurrency(totalAmount)}</p>
+          </div>
           <div className="redirect-message">
-            Redirecting to My Bookings...
+            Redirecting to My Bookings in 3 seconds...
           </div>
         </div>
       </div>
@@ -80,9 +137,31 @@ const PaymentSection = ({
   return (
     <div className="payment-section">
       <div className="payment-header">
-        <h3>Booking Summary</h3>
-        <p>Review your booking details before proceeding</p>
+        <h3>Complete Your Booking</h3>
+        <p>Review details and proceed with secure payment</p>
       </div>
+
+      {/* Security Status Indicator */}
+      {!isSecurityValid && (
+        <div className="security-warning">
+          <div className="warning-icon">⚠️</div>
+          <p>Security validation in progress...</p>
+          <div className="security-checks">
+            <div className={`check-item ${securityValidation.userAuthenticated ? 'valid' : 'invalid'}`}>
+              User authentication: {securityValidation.userAuthenticated ? '✓' : '✗'}
+            </div>
+            <div className={`check-item ${securityValidation.sessionValid ? 'valid' : 'invalid'}`}>
+              Session validation: {securityValidation.sessionValid ? '✓' : '✗'}
+            </div>
+            <div className={`check-item ${securityValidation.amountValidated ? 'valid' : 'invalid'}`}>
+              Amount validation: {securityValidation.amountValidated ? '✓' : '✗'}
+            </div>
+            <div className={`check-item ${securityValidation.environmentSecure ? 'valid' : 'invalid'}`}>
+              Environment security: {securityValidation.environmentSecure ? '✓' : '✗'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {bookingDetails && (
         <div className="booking-summary">
@@ -129,11 +208,60 @@ const PaymentSection = ({
           <span className="total-label">Total Amount:</span>
           <span className="total-amount">{formatCurrency(totalAmount)}</span>
         </div>
+        <div className="tax-info">
+          <small>Inclusive of all taxes and fees</small>
+        </div>
       </div>
 
-      {error && (
+      {/* Payment Method Selection */}
+      <div className="payment-methods">
+        <h4>Select Payment Method</h4>
+        <div className="payment-options">
+          <label className={`payment-option ${selectedPaymentMethod === 'razorpay' ? 'selected' : ''}`}>
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="razorpay"
+              checked={selectedPaymentMethod === 'razorpay'}
+              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+            />
+            <div className="payment-method-info">
+              <div className="payment-method-name">
+                <span>Razorpay</span>
+                <div className="payment-icons">
+                  <span className="payment-icon">💳</span>
+                  <span className="payment-icon">📱</span>
+                </div>
+              </div>
+              <div className="payment-method-description">
+                Credit/Debit Cards, Net Banking, UPI, Wallets
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* Terms and Conditions */}
+      <div className="terms-section">
+        <label className="terms-checkbox">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            required
+          />
+          <span className="checkmark"></span>
+          <span className="terms-text">
+            I agree to the <a href="/terms" target="_blank">Terms & Conditions</a> and 
+            <a href="/cancellation-policy" target="_blank"> Cancellation Policy</a>
+          </span>
+        </label>
+      </div>
+
+      {paymentError && (
         <div className="error-message">
-          <p>{error}</p>
+          <div className="error-icon">⚠️</div>
+          <p>{paymentError}</p>
         </div>
       )}
 
@@ -141,11 +269,28 @@ const PaymentSection = ({
         {bookingDetails ? (
           <button
             type="button"
-            className="create-booking-btn"
+            className="pay-now-btn"
             onClick={handleCreateBooking}
-            disabled={disabled || loading}
+            disabled={disabled || paymentLoading || !termsAccepted || !isSecurityValid}
           >
-            {loading ? 'Creating Booking...' : 'Create Booking'}
+            <div className="btn-content">
+              {paymentLoading ? (
+                <>
+                  <div className="loading-spinner"></div>
+                  <span>
+                    {paymentState.status === 'creating' && 'Creating Order...'}
+                    {paymentState.status === 'verifying' && 'Verifying Payment...'}
+                    {paymentState.status === 'processing' && 'Processing Payment...'}
+                    {paymentState.status === 'idle' && 'Processing...'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="secure-icon">🔒</span>
+                  <span>Pay Securely {formatCurrency(totalAmount)}</span>
+                </>
+              )}
+            </div>
           </button>
         ) : (
           <button
@@ -160,12 +305,32 @@ const PaymentSection = ({
       </div>
 
       <div className="payment-info">
-        <p className="info-text">
-          <strong>Note:</strong> Payment will be processed after booking confirmation.
-        </p>
-        <p className="info-text">
-          You can cancel your booking up to 2 hours before the scheduled time.
-        </p>
+        <div className="security-badges">
+          <div className="security-badge">
+            <span className="badge-icon">🔒</span>
+            <span>256-bit SSL Encrypted</span>
+          </div>
+          <div className="security-badge">
+            <span className="badge-icon">🛡️</span>
+            <span>PCI DSS Compliant</span>
+          </div>
+          <div className="security-badge">
+            <span className="badge-icon">✓</span>
+            <span>100% Secure Payment</span>
+          </div>
+        </div>
+        
+        <div className="payment-notes">
+          <p className="info-text">
+            <strong>Payment Security:</strong> All payments are processed through Razorpay's secure gateway.
+          </p>
+          <p className="info-text">
+            <strong>Cancellation:</strong> Free cancellation up to 2 hours before booking time.
+          </p>
+          <p className="info-text">
+            <strong>Refund:</strong> Refunds will be processed within 5-7 business days.
+          </p>
+        </div>
       </div>
     </div>
   );

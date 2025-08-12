@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -24,6 +25,15 @@ try {
   logger.error(`Database connection failed: ${error.message}`);
 }
 
+// Initialize session manager for authentication
+try {
+  const sessionManager = require('./src/utils/sessionManager');
+  sessionManager.initPeriodicCleanup();
+  logger.info('Session manager initialized');
+} catch (error) {
+  logger.error(`Session manager initialization failed: ${error.message}`);
+}
+
 // Security middleware
 app.use(helmet());
 
@@ -36,7 +46,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit for development
   message: {
     error: 'Too many requests from this IP, please try again later.'
   }
@@ -47,6 +57,9 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Compression middleware
 app.use(compression());
 
@@ -56,6 +69,17 @@ if (process.env.NODE_ENV === 'development') {
 } else {
   app.use(morgan('combined'));
 }
+
+// Disable caching for API endpoints to fix 304 issues
+app.use('/api', (req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store'
+  });
+  next();
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {

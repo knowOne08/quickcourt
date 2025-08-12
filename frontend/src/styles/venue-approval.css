@@ -1,0 +1,247 @@
+/* frontend/src/styles/venue-approval.css */
+
+.venue-approval-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--odoo-primary), var(--odoo-secondary));
+  color: var(--white);
+  border-radius: 8px;
+}
+
+.page-header h1 {
+  color: var(--white);
+  margin-bottom: 0.5rem;
+}
+
+.page-header p {
+  opacity: 0.9;
+}
+
+.filters {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--light-gray);
+  border-radius: 8px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filter-group label {
+  font-weight: 500;
+  color: var(--odoo-primary);
+}
+
+.filter-group select {
+  padding: 0.5rem;
+  border: 1px solid var(--border-gray);
+  border-radius: 4px;
+  min-width: 200px;
+}
+
+.admin-access-denied {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.admin-access-denied h2 {
+  color: var(--error);
+  margin-bottom: 1rem;
+}
+
+.venues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.venue-approval-card {
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  padding: 1.5rem;
+  background: var(--white);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.venue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.venue-header h3 {
+  color: var(--odoo-primary);
+  margin: 0;
+}
+
+.venue-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.venue-details p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.venue-details strong {
+  color: var(--odoo-primary);
+}
+
+.venue-description {
+  margin-bottom: 1rem;
+}
+
+.venue-description h4 {
+  color: var(--odoo-primary);
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.venue-description p {
+  background: var(--light-gray);
+  padding: 1rem;
+  border-radius: 4px;
+  font-style: italic;
+}
+
+.venue-images {
+  margin-bottom: 1rem;
+}
+
+.venue-images h4 {
+  color: var(--odoo-primary);
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.images-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rejection-reason {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.rejection-reason h4 {
+  color: #856404;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.rejection-reason p {
+  color: #856404;
+  margin: 0;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-gray);
+}
+
+.btn-error {
+  background-color: var(--error);
+  color: var(--white);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-error:hover {
+  background-color: #c53030;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background: var(--light-gray);
+  border-radius: 8px;
+}
+
+.empty-state h3 {
+  color: var(--odoo-gray);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: var(--odoo-gray);
+}
+
+/* Status badges */
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-approved {
+  background: #d1edff;
+  color: #0c63e4;
+}
+
+.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-suspended {
+  background: #e2e3e5;
+  color: #41464b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .venue-approval-page {
+    padding: 1rem;
+  }
+  
+  .venue-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .venue-details {
+    grid-template-columns: 1fr;
+  }
+  
+  .approval-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .filter-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filter-group select {
+    width: 100%;
+  }
+}

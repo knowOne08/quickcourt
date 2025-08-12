@@ -24,6 +24,7 @@ import FacilityManagement from './pages/owner/FacilityManagement';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
+import VenueApproval from './pages/admin/VenueApproval';
 
 // Components
 import Navbar from './components/common/Navbar';
@@ -85,6 +86,11 @@ function App() {
                 <Route path="/admin/dashboard" element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/venues" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <VenueApproval />
                   </ProtectedRoute>
                 } />
               </Routes>

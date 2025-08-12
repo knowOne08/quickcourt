@@ -72,10 +72,16 @@ const BookingForm = ({ venueId, onSuccess }) => {
     try {
       console.log('=== fetchAvailableSlots START ===');
       console.log('User authenticated:', isAuthenticated);
+      console.log('Token exists:', !!localStorage.getItem('token'));
       console.log('Selected court:', selectedCourt);
       console.log('Selected date:', selectedDate);
       console.log('Court ID:', selectedCourt?._id);
       console.log('Date string:', selectedDate?.toISOString().split('T')[0]);
+      
+      if (!isAuthenticated) {
+        console.error('User not authenticated');
+        return;
+      }
       
       if (!selectedCourt?._id) {
         console.error('No court selected');
@@ -97,17 +103,47 @@ const BookingForm = ({ venueId, onSuccess }) => {
       console.log('Available slots response:', response);
       
       // Handle the correct API response structure
-      const slots = response.data || response || [];
+      console.log('Response structure:', {
+        status: response.status,
+        data: response.data,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data)
+      });
+
+      let slots = [];
+      
+      // The API returns { status: 'success', data: [...slots] }
+      if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
+        slots = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        // Direct array response (shouldn't happen with our API but good fallback)
+        slots = response.data;
+      } else if (response.data && typeof response.data === 'object') {
+        // Object response, check for common array properties
+        slots = response.data.slots || response.data.availableSlots || response.data.data || [];
+      } else {
+        slots = [];
+      }
+
       console.log('Extracted slots:', slots);
+      console.log('Slots type:', typeof slots, 'Array?', Array.isArray(slots));
+      console.log('First slot structure:', slots[0]);
       setAvailableSlots(slots);
       console.log('=== fetchAvailableSlots END ===');
     } catch (error) {
       console.error('Error fetching available slots:', error);
       console.error('Error details:', {
         message: error.message,
-        response: error.response,
+        response: error.response?.data,
         status: error.response?.status
       });
+      
+      if (error.response?.status === 401) {
+        console.error('Authentication failed - redirecting to login');
+        navigate('/login');
+        return;
+      }
+      
       setAvailableSlots([]);
     }
   }, [selectedCourt?._id, selectedDate, duration, isAuthenticated]);
@@ -240,6 +276,12 @@ const BookingForm = ({ venueId, onSuccess }) => {
       setFormStep(step);
     }
   };
+console.log('BookingForm render:', {
+  availableSlots: availableSlots.length,
+  isAuthenticated,
+  user: user?.name,
+  token: localStorage.getItem('token') ? 'exists' : 'missing'
+});
 
   const isStepCompleted = (step) => {
     switch (step) {
