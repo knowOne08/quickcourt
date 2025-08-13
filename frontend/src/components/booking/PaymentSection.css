@@ -48,6 +48,7 @@
 
 .security-checks {
   margin-top: 8px;
+  flex: 1;
 }
 
 .check-item {
@@ -62,6 +63,58 @@
 
 .check-item.invalid {
   color: #dc2626;
+}
+
+.security-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #fbbf24;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hide-warning-btn {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.hide-warning-btn:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.clear-rate-limits-btn {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+  margin-left: 8px;
+}
+
+.clear-rate-limits-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.security-actions small {
+  color: #92400e;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* Booking Summary */
@@ -502,6 +555,22 @@
   
   .summary-value {
     text-align: left;
+  }
+
+  .security-warning {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .security-actions {
+    width: 100%;
+  }
+
+  .hide-warning-btn,
+  .clear-rate-limits-btn {
+    align-self: stretch;
+    margin-left: 0;
+    margin-top: 8px;
   }
 }
 

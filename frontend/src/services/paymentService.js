@@ -3,8 +3,8 @@ import api from './api';
 
 export const paymentService = {
   // Payment processing
-  createPaymentOrder: (bookingData) => api.post('/payments/create-order', bookingData),
-  verifyPayment: (paymentData) => api.post('/payments/verify', paymentData),
+  createPaymentIntent: (bookingData) => api.post('/payments/create-intent', bookingData),
+  confirmPayment: (paymentData) => api.post('/payments/confirm', paymentData),
   
   // Payment methods
   getPaymentMethods: () => api.get('/payments/methods'),

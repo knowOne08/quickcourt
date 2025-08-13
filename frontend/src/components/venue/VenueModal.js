@@ -23,7 +23,7 @@ const VenueModal = ({ venue, onClose, onSuccess }) => {
     },
     pricing: {
       hourly: '',
-      currency: 'INR'
+      currency: 'usd'
     },
     contact: {
       phone: '',
@@ -78,7 +78,7 @@ const VenueModal = ({ venue, onClose, onSuccess }) => {
         },
         pricing: {
           hourly: venue.pricing?.hourly || '',
-          currency: venue.pricing?.currency || 'INR'
+          currency: venue.pricing?.currency || 'usd'
         },
         contact: {
           phone: venue.contact?.phone || '',

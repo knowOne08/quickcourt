@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { venueService } from '../../services/venueService';
+import ReviewList from '../../components/reviews/ReviewList';
 import './VenueDetails.css';
 
 const VenueDetails = () => {
@@ -246,7 +247,7 @@ const VenueDetails = () => {
           <div className="section">
             <div className="section-title">Recent Reviews</div>
             <div className="review-list">
-              {venue.recentReviews.map((review) => (
+              {/* {venue.recentReviews.map((review) => (
                 <div key={review._id} className="review-item">
                   <div className="review-top">
                     <div className="review-name">
@@ -256,7 +257,8 @@ const VenueDetails = () => {
                   </div>
                   <div style={{ marginTop: 6 }}>{review.comment}</div>
                 </div>
-              ))}
+              ))} */}
+              <ReviewList venueId={venueId} />
             </div>
           </div>
         )}

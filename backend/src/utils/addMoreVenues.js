@@ -43,7 +43,7 @@ const addMoreVenues = async () => {
         },
         pricing: {
           hourly: 450,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '18:00',
@@ -92,7 +92,7 @@ const addMoreVenues = async () => {
         },
         pricing: {
           hourly: 300,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '18:00',
@@ -141,7 +141,7 @@ const addMoreVenues = async () => {
         },
         pricing: {
           hourly: 600,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '17:00',
@@ -190,7 +190,7 @@ const addMoreVenues = async () => {
         },
         pricing: {
           hourly: 250,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '06:00',

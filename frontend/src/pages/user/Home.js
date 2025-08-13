@@ -13,8 +13,6 @@ const Home = () => {
   const navigate = useNavigate();
 
   // Popular sports data (static since it's just for display)
-  
-  
 
   useEffect(() => {
     fetchVenues();

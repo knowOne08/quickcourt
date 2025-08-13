@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { BookingProvider } from './context/BookingContext';
 
+
 // Auth Pages
 import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
@@ -17,6 +18,8 @@ import VenueTest from './pages/user/VenueTest';
 import BookingPage from './pages/user/BookingPage';
 import Profile from './pages/user/Profile';
 import MyBookings from './pages/user/MyBookings';
+import BookingSuccessPage from './components/booking/BookingSuccessPage';
+import AddReviewPage from './pages/user/AddReviewPage';
 
 // Owner Pages
 import OwnerDashboard from './pages/owner/OwnerDashboard';
@@ -52,6 +55,7 @@ function App() {
                 <Route path="/venues" element={<VenuesList />} />
                 <Route path="/venue/:id" element={<VenueDetails />} />
                 <Route path="/venue-test" element={<VenueTest />} />
+                <Route path="/booking/:bookingId/review" element={<AddReviewPage />} />
 
                 {/* Protected User Routes */}
                 <Route path="/book/:venueId" element={
@@ -69,6 +73,7 @@ function App() {
                     <MyBookings />
                   </ProtectedRoute>
                 } />
+                <Route path="/booking-success" element={<BookingSuccessPage />} />
 
                 {/* Protected Owner Routes */}
                 <Route path="/owner/dashboard" element={

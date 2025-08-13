@@ -139,7 +139,7 @@ exports.createVenue = async (req, res) => {
       },
       pricing: {
         hourly: parseFloat(req.body.pricingHourly),
-        currency: req.body.pricingCurrency || 'INR'
+        currency: req.body.pricingCurrency || 'usd'
       },
       contact: {
         phone: req.body.contactPhone || '',

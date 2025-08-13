@@ -56,6 +56,11 @@ const bookingSchema = new mongoose.Schema({
   cancelledBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+  review: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Review',
+    default: null
   }
 }, {
   timestamps: true

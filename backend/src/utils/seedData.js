@@ -91,7 +91,7 @@ const seedData = async () => {
         },
         pricing: {
           hourly: 400,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '18:00',
@@ -140,7 +140,7 @@ const seedData = async () => {
         },
         pricing: {
           hourly: 800,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '17:00',
@@ -189,7 +189,7 @@ const seedData = async () => {
         },
         pricing: {
           hourly: 600,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '16:00',
@@ -238,7 +238,7 @@ const seedData = async () => {
         },
         pricing: {
           hourly: 500,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '17:00',
@@ -287,7 +287,7 @@ const seedData = async () => {
         },
         pricing: {
           hourly: 350,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '18:00',
@@ -336,7 +336,7 @@ const seedData = async () => {
         },
         pricing: {
           hourly: 200,
-          currency: 'INR',
+          currency: 'usd',
           peakHours: [
             {
               startTime: '18:00',

@@ -434,7 +434,7 @@ const VenueCard = memo(({ venue, onBook }) => {
   const formattedPrice = useMemo(() => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'INR'
+      currency: 'usd'
     }).format(venue.pricing.hourly);
   }, [venue.pricing.hourly]);
   

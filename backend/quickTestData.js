@@ -85,7 +85,7 @@ const addQuickTestData = async () => {
       },
       pricing: {
         hourly: 300,
-        currency: 'INR'
+        currency: 'usd'
       },
       rating: {
         average: 4.5,

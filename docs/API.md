@@ -140,7 +140,7 @@ Get all venues with filtering and pagination.
         "images": ["image_url1", "image_url2"],
         "pricing": {
           "hourly": 500,
-          "currency": "INR"
+          "currency": "usd"
         },
         "rating": {
           "average": 4.5,
@@ -186,7 +186,7 @@ Get venue details by ID.
       "images": ["image_url1", "image_url2"],
       "pricing": {
         "hourly": 500,
-        "currency": "INR"
+        "currency": "usd"
       },
       "availability": {
         "openTime": "06:00",
@@ -240,7 +240,7 @@ Create a new venue.
   "amenities": ["parking", "changing_room"],
   "pricing": {
     "hourly": 800,
-    "currency": "INR"
+    "currency": "usd"
   },
   "availability": {
     "openTime": "06:00",
@@ -375,7 +375,7 @@ Create payment order.
 {
   "bookingId": "booking_id",
   "amount": 500,
-  "currency": "INR"
+  "currency": "usd"
 }
 ```
 

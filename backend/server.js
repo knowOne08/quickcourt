@@ -53,6 +53,14 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+try {
+  const webhookRoutes = require('./src/routes/webhook');
+  app.use('/api/payments/webhook', express.raw({ type: 'application/json' }), webhookRoutes);
+  logger.info('✅ Stripe webhook route loaded successfully at /api/payments/webhook');
+} catch (error) {
+  logger.error(`❌ Failed to load webhook routes: ${error.message}`);
+}
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -103,6 +111,7 @@ app.get('/api', (req, res) => {
 // Helper function to load routes safely
 const loadRoute = (routePath, mountPath, routeName) => {
   try {
+    console.log(`🔄 Attempting to load ${routeName} routes from ${routePath}...`);
     const route = require(routePath);
     if (route && typeof route === 'function') {
       app.use(mountPath, route);
@@ -114,13 +123,15 @@ const loadRoute = (routePath, mountPath, routeName) => {
     }
   } catch (error) {
     logger.error(`❌ Failed to load ${routeName} routes: ${error.message}`);
+    logger.error(`❌ Error stack: ${error.stack}`);
     
     // Create a fallback route
     app.use(mountPath, (req, res) => {
       res.json({ 
         success: false,
         message: `${routeName} routes not implemented yet`,
-        error: error.message
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     });
     return false;

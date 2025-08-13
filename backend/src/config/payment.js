@@ -3,8 +3,8 @@ const logger = require('../utils/logger');
 
 class PaymentService {
   constructor() {
-    this.razorpayKeyId = process.env.RAZORPAY_KEY_ID;
-    this.razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+    this.stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    this.stripePublishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
   }
 
   generateOrderId() {
@@ -15,37 +15,38 @@ class PaymentService {
     return 'txn_' + crypto.randomBytes(16).toString('hex');
   }
 
-  createRazorpayOrder(amount, currency = 'INR', receipt) {
-    // In a real implementation, this would use the Razorpay SDK
-    // For now, we'll simulate the order creation
-    const order = {
-      id: this.generateOrderId(),
-      entity: 'order',
-      amount: amount * 100, // Razorpay expects amount in paise
-      amount_paid: 0,
-      amount_due: amount * 100,
-      currency: currency,
-      receipt: receipt,
-      status: 'created',
-      attempts: 0,
-      created_at: Math.floor(Date.now() / 1000)
+  createStripePaymentIntent(amount, currency = 'usd', metadata = {}) {
+    // This method will be used by the payment controller
+    // The actual Stripe integration is handled in the controller
+    const paymentIntent = {
+      id: 'pi_' + crypto.randomBytes(12).toString('hex'),
+      amount: Math.round(amount * 100), // Amount in smallest currency unit
+      currency: currency.toLowerCase(),
+      status: 'requires_payment_method',
+      client_secret: 'pi_' + crypto.randomBytes(12).toString('hex') + '_secret_' + crypto.randomBytes(24).toString('hex'),
+      metadata: metadata,
+      created: Math.floor(Date.now() / 1000)
     };
 
-    logger.info('Razorpay order created:', order.id);
-    return order;
+    logger.info('Stripe payment intent created:', paymentIntent.id);
+    return paymentIntent;
   }
 
-  verifyRazorpaySignature(orderId, paymentId, signature) {
+  verifyStripePayment(paymentIntentId, amount) {
     try {
-      const body = orderId + '|' + paymentId;
-      const expectedSignature = crypto
-        .createHmac('sha256', this.razorpayKeySecret)
-        .update(body.toString())
-        .digest('hex');
-
-      return expectedSignature === signature;
+      // In a real implementation, this would verify with Stripe API
+      // For now, we'll simulate the verification
+      const isValid = paymentIntentId && amount > 0;
+      
+      if (isValid) {
+        logger.info('Stripe payment verified:', paymentIntentId);
+      } else {
+        logger.warn('Stripe payment verification failed:', paymentIntentId);
+      }
+      
+      return isValid;
     } catch (error) {
-      logger.error('Signature verification failed:', error);
+      logger.error('Stripe payment verification error:', error);
       return false;
     }
   }
@@ -63,39 +64,37 @@ class PaymentService {
     }
   }
 
-  processRefund(paymentId, amount, reason = 'Customer request') {
-    // In a real implementation, this would use the Razorpay SDK
+  processRefund(paymentIntentId, amount, reason = 'Customer request') {
+    // In a real implementation, this would use the Stripe SDK
     // For now, we'll simulate the refund process
     const refund = {
-      id: 'rfnd_' + crypto.randomBytes(12).toString('hex'),
-      entity: 'refund',
-      amount: amount * 100,
-      currency: 'INR',
-      payment_id: paymentId,
-      receipt: null,
-      status: 'processed',
-      speed_requested: 'normal',
-      speed_processed: 'normal',
-      created_at: Math.floor(Date.now() / 1000)
+      id: 're_' + crypto.randomBytes(12).toString('hex'),
+      object: 'refund',
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      payment_intent: paymentIntentId,
+      status: 'succeeded',
+      reason: reason,
+      created: Math.floor(Date.now() / 1000)
     };
 
-    logger.info('Refund processed:', refund.id);
+    logger.info('Stripe refund processed:', refund.id);
     return refund;
   }
 
   generatePaymentLink(amount, description, customerInfo) {
-    // Simulate payment link generation
+    // Simulate Stripe payment link generation
     const linkId = 'plink_' + crypto.randomBytes(12).toString('hex');
     const paymentLink = {
       id: linkId,
-      amount: amount * 100,
-      currency: 'INR',
+      amount: Math.round(amount * 100),
+      currency: 'usd',
       description: description,
       customer: customerInfo,
-      short_url: `https://rzp.io/${linkId}`,
-      status: 'created',
-      created_at: Math.floor(Date.now() / 1000),
-      expire_by: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+      url: `https://checkout.stripe.com/pay/${linkId}`,
+      status: 'active',
+      created: Math.floor(Date.now() / 1000),
+      expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
     };
 
     return paymentLink;
@@ -115,26 +114,31 @@ class PaymentService {
     }
   }
 
-  getPaymentStatus(paymentId) {
-    // In a real implementation, this would fetch from Razorpay
+  getPaymentStatus(paymentIntentId) {
+    // In a real implementation, this would fetch from Stripe
     // For now, we'll simulate payment status
     return {
-      id: paymentId,
-      entity: 'payment',
-      status: 'captured',
-      amount: 50000, // Amount in paise
-      currency: 'INR',
-      method: 'card',
-      captured: true,
-      created_at: Math.floor(Date.now() / 1000)
+      id: paymentIntentId,
+      object: 'payment_intent',
+      status: 'succeeded',
+      amount: 50000, // Amount in smallest currency unit
+      currency: 'usd',
+      payment_method_types: ['card'],
+      created: Math.floor(Date.now() / 1000)
     };
   }
 
-  formatAmount(amount, currency = 'INR') {
-    if (currency === 'INR') {
+  formatAmount(amount, currency = 'usd') {
+    const currencyUpper = currency.toUpperCase();
+    if (currencyUpper === 'usd') {
       return new Intl.NumberFormat('en-IN', {
         style: 'currency',
-        currency: 'INR'
+        currency: 'usd'
+      }).format(amount);
+    } else if (currencyUpper === 'USD') {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'usd'
       }).format(amount);
     }
     return amount.toString();

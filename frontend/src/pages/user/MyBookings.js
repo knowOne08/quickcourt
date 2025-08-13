@@ -1,11 +1,13 @@
 // frontend/src/pages/user/MyBookings.js
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
 import BookingCard from '../../components/booking/BookingCard';
 import './MyBookings.css';
 
 const MyBookings = () => {
+  const navigate = useNavigate(); // Call the hook to get the navigate function
   const { user, isAuthenticated } = useAuth();
   const { userBookings, loadUserBookings, loading, error } = useBooking();
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -23,17 +25,32 @@ const MyBookings = () => {
   };
 
   const filterBookings = (bookings) => {
-    const now = new Date();
-    
+    if (!Array.isArray(bookings)) {
+        return [];
+    }
+
+    // --- FIX: Use the current time for comparison, not just the date ---
+    const now = new Date(); 
+
+    const createBookingDateTime = (booking) => {
+        if (!booking.date || !booking.startTime) return null;
+        const datePart = new Date(booking.date);
+        const [hours, minutes] = booking.startTime.split(':');
+        // Create a date object that correctly reflects the booking's local time
+        return new Date(datePart.getFullYear(), datePart.getMonth(), datePart.getDate(), hours, minutes);
+    };
+
     if (activeTab === 'upcoming') {
       return bookings.filter(booking => {
-        const bookingDateTime = new Date(`${booking.date.toISOString().split('T')[0]}T${booking.startTime}`);
-        return bookingDateTime > now && booking.status !== 'cancelled';
+        const bookingDateTime = createBookingDateTime(booking);
+        // A booking is upcoming if its start time is after the current time
+        return bookingDateTime && bookingDateTime > now && booking.status !== 'cancelled';
       });
     } else if (activeTab === 'past') {
       return bookings.filter(booking => {
-        const bookingDateTime = new Date(`${booking.date.toISOString().split('T')[0]}T${booking.startTime}`);
-        return bookingDateTime <= now || booking.status === 'completed';
+        const bookingDateTime = createBookingDateTime(booking);
+        // A booking is past if its start time is before or at the current time
+        return bookingDateTime && (bookingDateTime <= now || booking.status === 'completed');
       });
     } else if (activeTab === 'cancelled') {
       return bookings.filter(booking => booking.status === 'cancelled');
@@ -66,6 +83,37 @@ const MyBookings = () => {
     );
   }
 
+  // Helper for tab counts to avoid repeating logic
+  const getBookingCount = (filterType) => {
+    if (!Array.isArray(userBookings)) return 0;
+    
+    // --- FIX: Use the current time for comparison in tab counts as well ---
+    const now = new Date();
+
+    const createBookingDateTime = (booking) => {
+        if (!booking.date || !booking.startTime) return null;
+        const datePart = new Date(booking.date);
+        const [hours, minutes] = booking.startTime.split(':');
+        return new Date(datePart.getFullYear(), datePart.getMonth(), datePart.getDate(), hours, minutes);
+    };
+
+    return userBookings.filter(b => {
+      const bookingDateTime = createBookingDateTime(b);
+      if (!bookingDateTime) return false;
+
+      if (filterType === 'upcoming') {
+        return bookingDateTime > now && b.status !== 'cancelled';
+      }
+      if (filterType === 'past') {
+        return bookingDateTime <= now || b.status === 'completed';
+      }
+      if (filterType === 'cancelled') {
+        return b.status === 'cancelled';
+      }
+      return false;
+    }).length;
+  };
+
   return (
     <div className="my-bookings-page">
       <div className="bookings-container">
@@ -80,27 +128,19 @@ const MyBookings = () => {
             className={`tab-btn ${activeTab === 'upcoming' ? 'active' : ''}`}
             onClick={() => setActiveTab('upcoming')}
           >
-            Upcoming ({filterBookings(userBookings).filter(b => {
-              const now = new Date();
-              const bookingDateTime = new Date(`${b.date.toISOString().split('T')[0]}T${b.startTime}`);
-              return bookingDateTime > now && b.status !== 'cancelled';
-            }).length})
+            Upcoming ({getBookingCount('upcoming')})
           </button>
           <button
             className={`tab-btn ${activeTab === 'past' ? 'active' : ''}`}
             onClick={() => setActiveTab('past')}
           >
-            Past ({filterBookings(userBookings).filter(b => {
-              const now = new Date();
-              const bookingDateTime = new Date(`${b.date.toISOString().split('T')[0]}T${b.startTime}`);
-              return bookingDateTime <= now || b.status === 'completed';
-            }).length})
+            Past ({getBookingCount('past')})
           </button>
           <button
             className={`tab-btn ${activeTab === 'cancelled' ? 'active' : ''}`}
             onClick={() => setActiveTab('cancelled')}
           >
-            Cancelled ({filterBookings(userBookings).filter(b => b.status === 'cancelled').length})
+            Cancelled ({getBookingCount('cancelled')})
           </button>
         </div>
 
@@ -139,7 +179,7 @@ const MyBookings = () => {
                 </p>
                 {activeTab === 'upcoming' && (
                   <button 
-                    onClick={() => window.location.href = '/venues'}
+                    onClick={() => navigate('/venues')}
                     className="book-now-btn"
                   >
                     Book a Court
@@ -148,13 +188,19 @@ const MyBookings = () => {
               </div>
             ) : (
               <div className="bookings-grid">
-                {currentBookings.map(booking => (
-                  <BookingCard
-                    key={booking._id}
-                    booking={booking}
-                    onUpdate={handleBookingUpdate}
-                  />
-                ))}
+                {currentBookings.map(booking => {
+                  // --- CHANGE: Determine if a review can be added ---
+                  const canAddReview = activeTab === 'past' && booking.status === 'pending' && !booking.review;
+                  
+                  return (
+                    <BookingCard
+                      key={booking._id}
+                      booking={booking}
+                      onUpdate={handleBookingUpdate}
+                      showReviewButton={canAddReview} // Pass this new prop
+                    />
+                  );
+                })}
               </div>
             )}
 

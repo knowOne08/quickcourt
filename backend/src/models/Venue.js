@@ -103,7 +103,7 @@ const venueSchema = new mongoose.Schema({
     },
     currency: {
       type: String,
-      default: 'INR'
+      default: 'usd'
     },
     peakHours: [{
       startTime: String,
@@ -227,6 +227,14 @@ venueSchema.virtual('fullAddress').get(function() {
 
 // Virtual for price range
 venueSchema.virtual('priceRange').get(function() {
+  // FIX: Add a check to ensure 'pricing' and 'peakHours' exist
+  if (!this.pricing || !Array.isArray(this.pricing.peakHours)) {
+    return {
+      min: this.pricing?.hourly || 0,
+      max: this.pricing?.hourly || 0
+    };
+  }
+
   const basePrice = this.pricing.hourly;
   const peakMultiplier = this.pricing.peakHours.length > 0 
     ? Math.max(...this.pricing.peakHours.map(p => p.multiplier))
