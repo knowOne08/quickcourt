@@ -75,11 +75,11 @@
 
 //   const canCancel = () => {
 //     if (booking.status === 'cancelled' || booking.status === 'completed') return false;
-    
+
 //     const bookingDateTime = new Date(`${booking.date.split('T')[0]}T${booking.startTime}`);
 //     const now = new Date();
 //     const twoHoursBefore = new Date(bookingDateTime.getTime() - 2 * 60 * 60 * 1000);
-    
+
 //     return now < twoHoursBefore;
 //   };
 
@@ -124,31 +124,31 @@
 //               <span className="detail-label">Court:</span>
 //               <span className="detail-value">{booking.court?.name || 'Court Name'}</span>
 //             </div>
-            
+
 //             <div className="detail-row">
 //               <span className="detail-label">Sport:</span>
 //               <span className="detail-value">{booking.court?.sport || 'Sport'}</span>
 //             </div>
-            
+
 //             <div className="detail-row">
 //               <span className="detail-label">Date:</span>
 //               <span className="detail-value">{formatDate(booking.date)}</span>
 //             </div>
-            
+
 //             <div className="detail-row">
 //               <span className="detail-label">Time:</span>
 //               <span className="detail-value">
 //                 {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
 //               </span>
 //             </div>
-            
+
 //             <div className="detail-row">
 //               <span className="detail-label">Duration:</span>
 //               <span className="detail-value">
 //                 {booking.duration / 60} hour{booking.duration / 60 !== 1 ? 's' : ''}
 //               </span>
 //             </div>
-            
+
 //             <div className="detail-row total">
 //               <span className="detail-label">Total Amount:</span>
 //               <span className="detail-value amount">{formatCurrency(booking.totalAmount)}</span>
@@ -163,7 +163,7 @@
 //             >
 //               View Details
 //             </button>
-            
+
 //             {canCancel() && (
 //               <button
 //                 type="button"
@@ -174,7 +174,7 @@
 //                 {loading ? 'Cancelling...' : 'Cancel'}
 //               </button>
 //             )}
-            
+
 //             {booking.status === 'completed' && !booking.review && (
 //               <button
 //                 type="button"
@@ -194,7 +194,7 @@
 //           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
 //             <h3>Cancel Booking</h3>
 //             <p>Are you sure you want to cancel this booking?</p>
-            
+
 //             <div className="form-group">
 //               <label htmlFor="cancel-reason">Reason for cancellation:</label>
 //               <textarea
@@ -206,7 +206,7 @@
 //                 className="cancel-reason-input"
 //               />
 //             </div>
-            
+
 //             <div className="modal-actions">
 //               <button
 //                 type="button"
@@ -310,12 +310,12 @@ const BookingCard = ({ booking, onUpdate }) => {
   };
 
   const canCancel = () => {
-    if (booking.status === 'cancelled' || booking.status === 'completed' || !booking.date || !booking.startTime) return false;
-    
+    if (booking.status === 'pending' || booking.status === 'cancelled' || booking.status === 'completed' || !booking.date || !booking.startTime) return false;
+
     const bookingDateTime = new Date(`${booking.date.split('T')[0]}T${booking.startTime}`);
     const now = new Date();
     const twoHoursBefore = new Date(bookingDateTime.getTime() - 2 * 60 * 60 * 1000);
-    
+
     return now < twoHoursBefore;
   };
 
@@ -328,7 +328,7 @@ const BookingCard = ({ booking, onUpdate }) => {
   // FIX: Use a dynamic placeholder if the venue image doesn't exist.
   const getVenueImage = () => {
     if (booking.venue?.images && booking.venue.images.length > 0) {
-      return booking.venue.images[0];
+      return booking.venue.images[0].url;
     }
     // Generate a placeholder with the venue name
     const venueName = booking.venue?.name || 'Venue';
@@ -339,9 +339,9 @@ const BookingCard = ({ booking, onUpdate }) => {
     <>
       <div className={`booking-card ${isPast() ? 'past-booking' : ''}`}>
         <div className="booking-image">
-          <img 
-            src={getVenueImage()} 
-            alt={booking.venue?.name || 'Venue'} 
+          <img
+            src={getVenueImage()}
+            alt={booking.venue?.name || 'Venue'}
             onError={(e) => {
               // FIX: If the primary image URL fails, fall back to a generic placeholder.
               e.target.onerror = null; // Prevents infinite loops
@@ -366,31 +366,31 @@ const BookingCard = ({ booking, onUpdate }) => {
               <span className="detail-label">Court:</span>
               <span className="detail-value">{booking.court?.name || 'Court Name'}</span>
             </div>
-            
+
             <div className="detail-row">
               <span className="detail-label">Sport:</span>
               <span className="detail-value">{booking.court?.sport || 'Sport'}</span>
             </div>
-            
+
             <div className="detail-row">
               <span className="detail-label">Date:</span>
               <span className="detail-value">{booking.date ? formatDate(booking.date) : 'N/A'}</span>
             </div>
-            
+
             <div className="detail-row">
               <span className="detail-label">Time:</span>
               <span className="detail-value">
                 {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
               </span>
             </div>
-            
+
             <div className="detail-row">
               <span className="detail-label">Duration:</span>
               <span className="detail-value">
                 {booking.duration / 60} hour{booking.duration / 60 !== 1 ? 's' : ''}
               </span>
             </div>
-            
+
             <div className="detail-row total">
               <span className="detail-label">Total Amount:</span>
               <span className="detail-value amount">{formatCurrency(booking.totalAmount)}</span>
@@ -405,7 +405,7 @@ const BookingCard = ({ booking, onUpdate }) => {
             >
               View Details
             </button>
-            
+
             {canCancel() && (
               <button
                 type="button"
@@ -416,8 +416,8 @@ const BookingCard = ({ booking, onUpdate }) => {
                 {loading ? 'Cancelling...' : 'Cancel'}
               </button>
             )}
-            
-            {booking.status === 'completed' && !booking.review && (
+
+            {booking.status === 'confirmed' && !booking.review && (
               <button
                 type="button"
                 className="action-btn review-btn"
@@ -436,7 +436,7 @@ const BookingCard = ({ booking, onUpdate }) => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Cancel Booking</h3>
             <p>Are you sure you want to cancel this booking?</p>
-            
+
             <div className="form-group">
               <label htmlFor="cancel-reason">Reason for cancellation:</label>
               <textarea
@@ -448,7 +448,7 @@ const BookingCard = ({ booking, onUpdate }) => {
                 className="cancel-reason-input"
               />
             </div>
-            
+
             <div className="modal-actions">
               <button
                 type="button"

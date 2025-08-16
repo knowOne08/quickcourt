@@ -18,20 +18,20 @@ exports.submitReview = async (req, res) => {
     if (booking.user.toString() !== userId) {
       return res.status(403).json({ message: 'You can only review your own bookings.' });
     }
-    if (booking.status !== 'completed') {
+    if (booking.status !== 'confirmed') {
       return res.status(400).json({ message: 'You can only review completed bookings.' });
     }
     if (booking.review) {
       return res.status(400).json({ message: 'This booking has already been reviewed.' });
     }
 
-    // Create the new review with the detailed rating object
+    // Create the new review
     const review = await Review.create({
       user: userId,
       venue: booking.venue,
       court: booking.court,
       booking: bookingId,
-      rating, // The rating object from the frontend { overall, cleanliness, etc. }
+      rating,
       title,
       comment
     });
@@ -40,11 +40,21 @@ exports.submitReview = async (req, res) => {
     booking.review = review._id;
     await booking.save();
 
-    // Optional: Trigger a recalculation of the venue's average rating
-    const venue = await Venue.findById(booking.venue);
-    if (venue) {
-      await venue.addRating(rating.overall); // Assuming you have an 'addRating' method
+    // --- NEW: Recalculate and update venue ratings ---
+    // Use the static method from your Review model to get fresh stats
+    const stats = await Review.getVenueStats(booking.venue);
+
+    if (stats && stats.length > 0) {
+      const venueStats = stats[0];
+      await Venue.findByIdAndUpdate(booking.venue, {
+        $set: {
+          'rating.average': venueStats.averageRating,
+          'rating.count': venueStats.totalReviews,
+          'rating.breakdown': venueStats.ratingBreakdown,
+        }
+      });
     }
+    // --- END of new logic ---
 
     res.status(201).json({ status: 'success', data: { review } });
   } catch (error) {
@@ -60,7 +70,7 @@ exports.getReviewsForVenue = async (req, res) => {
     const reviews = await Review.find({ venue: venueId, isApproved: true, isHidden: false })
       .populate('user', 'name') // Only get the user's name for privacy
       .sort({ createdAt: -1 });
-      
+
     res.status(200).json({ status: 'success', data: { reviews } });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch reviews.' });

@@ -66,7 +66,7 @@ const reviewSchema = new mongoose.Schema({
     maxlength: 1000
   },
   images: [String], // URLs to uploaded images
-  
+
   // Moderation
   isApproved: {
     type: Boolean,
@@ -82,7 +82,7 @@ const reviewSchema = new mongoose.Schema({
     ref: 'User'
   },
   moderatedAt: Date,
-  
+
   // Interaction metrics
   likes: [{
     user: {
@@ -119,7 +119,7 @@ const reviewSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  
+
   // Response from venue owner
   ownerResponse: {
     message: String,
@@ -129,13 +129,13 @@ const reviewSchema = new mongoose.Schema({
     },
     respondedAt: Date
   },
-  
+
   // Helpful votes
   helpfulVotes: {
     type: Number,
     default: 0
   },
-  
+
   // Review metadata
   visitDate: Date,
   reviewSource: {
@@ -143,7 +143,7 @@ const reviewSchema = new mongoose.Schema({
     enum: ['mobile', 'web', 'email'],
     default: 'web'
   },
-  
+
   // Verification
   isVerifiedBooking: {
     type: Boolean,
@@ -162,67 +162,67 @@ reviewSchema.index({ createdAt: -1 });
 reviewSchema.index({ helpfulVotes: -1 });
 
 // Virtual for total likes
-reviewSchema.virtual('totalLikes').get(function() {
+reviewSchema.virtual('totalLikes').get(function () {
   return this.likes.length;
 });
 
 // Virtual for total dislikes
-reviewSchema.virtual('totalDislikes').get(function() {
+reviewSchema.virtual('totalDislikes').get(function () {
   return this.dislikes.length;
 });
 
 // Virtual for net helpful score
-reviewSchema.virtual('netHelpfulScore').get(function() {
+reviewSchema.virtual('netHelpfulScore').get(function () {
   return this.totalLikes - this.totalDislikes;
 });
 
 // Method to add like
-reviewSchema.methods.addLike = function(userId) {
+reviewSchema.methods.addLike = function (userId) {
   // Remove any existing dislike
-  this.dislikes = this.dislikes.filter(dislike => 
+  this.dislikes = this.dislikes.filter(dislike =>
     !dislike.user.equals(userId)
   );
-  
+
   // Check if already liked
-  const existingLike = this.likes.find(like => 
+  const existingLike = this.likes.find(like =>
     like.user.equals(userId)
   );
-  
+
   if (!existingLike) {
     this.likes.push({ user: userId });
     this.helpfulVotes += 1;
   }
-  
+
   return this.save();
 };
 
 // Method to add dislike
-reviewSchema.methods.addDislike = function(userId) {
+reviewSchema.methods.addDislike = function (userId) {
   // Remove any existing like
-  this.likes = this.likes.filter(like => 
+  this.likes = this.likes.filter(like =>
     !like.user.equals(userId)
   );
-  
+
   // Check if already disliked
-  const existingDislike = this.dislikes.find(dislike => 
+  const existingDislike = this.dislikes.find(dislike =>
     dislike.user.equals(userId)
   );
-  
+
   if (!existingDislike) {
     this.dislikes.push({ user: userId });
     this.helpfulVotes -= 1;
   }
-  
+
   return this.save();
 };
 
 // Method to add report
-reviewSchema.methods.addReport = function(userId, reason, description) {
+reviewSchema.methods.addReport = function (userId, reason, description) {
   // Check if user already reported
-  const existingReport = this.reports.find(report => 
+  const existingReport = this.reports.find(report =>
     report.user.equals(userId)
   );
-  
+
   if (!existingReport) {
     this.reports.push({
       user: userId,
@@ -230,27 +230,27 @@ reviewSchema.methods.addReport = function(userId, reason, description) {
       description
     });
   }
-  
+
   return this.save();
 };
 
 // Method to add owner response
-reviewSchema.methods.addOwnerResponse = function(message, respondedBy) {
+reviewSchema.methods.addOwnerResponse = function (message, respondedBy) {
   this.ownerResponse = {
     message,
     respondedBy,
     respondedAt: new Date()
   };
-  
+
   return this.save();
 };
 
 // Static method to get venue review statistics
-reviewSchema.statics.getVenueStats = function(venueId) {
+reviewSchema.statics.getVenueStats = function (venueId) {
   return this.aggregate([
     {
       $match: {
-        venue: mongoose.Types.ObjectId(venueId),
+        venue: new mongoose.Types.ObjectId(venueId),
         isApproved: true,
         isHidden: false
       }
@@ -323,12 +323,12 @@ reviewSchema.statics.getVenueStats = function(venueId) {
 };
 
 // Pre-save middleware to verify booking
-reviewSchema.pre('save', async function(next) {
+reviewSchema.pre('save', async function (next) {
   if (this.isNew) {
     try {
       const Booking = mongoose.model('Booking');
       const booking = await Booking.findById(this.booking);
-      
+
       if (booking && booking.status === 'completed') {
         this.isVerifiedBooking = true;
         this.visitDate = booking.date;

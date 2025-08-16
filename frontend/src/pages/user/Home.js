@@ -43,7 +43,7 @@ const Home = () => {
   const fetchTopVenues = async () => {
     try {
       const response = await venueService.getTopVenues(6);
-      
+
       if (response.data?.status === 'success') {
         setTopVenues(response.data.data.venues);
       }
@@ -166,8 +166,8 @@ const Home = () => {
                     </div>
                     <div className="venue-actions">
                       <span className="price-range">{formatPriceRange(venue)}</span>
-                      <button 
-                        className="book-button" 
+                      <button
+                        className="book-button"
                         onClick={() => navigate(`/venue/${venue._id}`)}
                       >
                         View Details

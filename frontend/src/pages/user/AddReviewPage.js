@@ -1,79 +1,127 @@
-// frontend/src/pages/user/AddReviewPage.js
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { reviewService } from '../../services/reviewService';
-// import './AddReviewPage.css'; // Add styling for your form
+import { reviewService } from '../../services/reviewService'; // Assuming this is the correct path
+import '../../styles/addreviewPage.css';
+
+// A self-contained StarRating component for clarity
+const StarRating = ({ label, rating, onRatingChange }) => {
+  return (
+    <div className="star-rating">
+      <label>{label}:</label>
+      <div className="stars">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span
+            key={star}
+            className={star <= rating ? 'star-filled' : 'star-empty'}
+            onClick={() => onRatingChange(star)}
+          >
+            ★
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const AddReviewPage = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  
-  const [rating, setRating] = useState({ overall: 0, cleanliness: 0, facilities: 0 });
+
+  // State for each rating category from your model
+  const [overallRating, setOverallRating] = useState(0);
+  const [cleanlinessRating, setCleanlinessRating] = useState(0);
+  const [facilitiesRating, setFacilitiesRating] = useState(0);
+  const [staffRating, setStaffRating] = useState(0);
+  const [valueForMoneyRating, setValueForMoneyRating] = useState(0);
+  const [locationRating, setLocationRating] = useState(0);
+
+  // State for text inputs
   const [title, setTitle] = useState('');
   const [comment, setComment] = useState('');
+
+  // State for form submission status
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (rating.overall === 0 || !title.trim() || !comment.trim()) {
+    setError('');
+
+    // --- Validation Check ---
+    if (overallRating === 0 || !title.trim() || !comment.trim()) {
       setError('Please provide an overall rating, title, and comment.');
       return;
     }
-    
+
     setLoading(true);
-    setError('');
+
+    const reviewData = {
+      bookingId,
+      rating: {
+        overall: overallRating,
+        cleanliness: cleanlinessRating,
+        facilities: facilitiesRating,
+        staff: staffRating,
+        valueForMoney: valueForMoneyRating,
+        location: locationRating,
+      },
+      title,
+      comment,
+    };
+
     try {
-      await reviewService.submitReview({
-        bookingId,
-        rating,
-        title,
-        comment,
-      });
+      // --- API Call using reviewService ---
+      await reviewService.submitReview(reviewData);
+
+      alert('Review submitted successfully!');
       navigate('/my-bookings'); // Redirect after successful submission
+
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit review.');
+      // Handle errors from the API service (e.g., Axios)
+      const errorMessage = err.response?.data?.message || 'Failed to submit review. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
-
-  // A simple star rating component
-  const StarRating = ({ category, value, onRate }) => (
-    <div className="star-rating">
-      <label>{category.charAt(0).toUpperCase() + category.slice(1)}:</label>
-      <div>
-        {[...Array(5)].map((_, index) => {
-          const ratingValue = index + 1;
-          return (
-            <span 
-              key={ratingValue}
-              className={ratingValue <= value ? 'star-filled' : 'star-empty'}
-              onClick={() => onRate(category, ratingValue)}
-            >
-              ★
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  const handleRatingChange = (category, value) => {
-    setRating(prev => ({ ...prev, [category]: value }));
   };
 
   return (
     <div className="add-review-page">
       <form onSubmit={handleSubmit} className="review-form">
         <h2>Write a Review</h2>
-        <p>Share your experience for booking ID: {bookingId}</p>
+        <p>Share your experience for booking ID: <strong>{bookingId}</strong></p>
 
         <div className="ratings-container">
-          <StarRating category="overall" value={rating.overall} onRate={handleRatingChange} />
-          <StarRating category="cleanliness" value={rating.cleanliness} onRate={handleRatingChange} />
-          <StarRating category="facilities" value={rating.facilities} onRate={handleRatingChange} />
-          {/* Add other rating categories from your schema here */}
+          <StarRating
+            label="Overall"
+            rating={overallRating}
+            onRatingChange={setOverallRating}
+          />
+          <StarRating
+            label="Cleanliness"
+            rating={cleanlinessRating}
+            onRatingChange={setCleanlinessRating}
+          />
+          <StarRating
+            label="Facilities"
+            rating={facilitiesRating}
+            onRatingChange={setFacilitiesRating}
+          />
+          <StarRating
+            label="Staff"
+            rating={staffRating}
+            onRatingChange={setStaffRating}
+          />
+          <StarRating
+            label="Value for Money"
+            rating={valueForMoneyRating}
+            onRatingChange={setValueForMoneyRating}
+          />
+          <StarRating
+            label="Location"
+            rating={locationRating}
+            onRatingChange={setLocationRating}
+          />
         </div>
 
         <div className="form-group">
@@ -83,9 +131,10 @@ const AddReviewPage = () => {
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            required
+            placeholder="e.g., 'A wonderful stay!'"
           />
         </div>
+
         <div className="form-group">
           <label htmlFor="comment">Your Comment</label>
           <textarea
@@ -93,13 +142,13 @@ const AddReviewPage = () => {
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             rows="5"
-            required
+            placeholder="Tell us about your experience..."
           ></textarea>
         </div>
 
         {error && <p className="error-message">{error}</p>}
-        
-        <button type="submit" disabled={loading}>
+
+        <button type="submit" className="submit-btn" disabled={loading}>
           {loading ? 'Submitting...' : 'Submit Review'}
         </button>
       </form>

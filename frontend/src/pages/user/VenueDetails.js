@@ -19,21 +19,21 @@ const VenueDetails = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         console.log('🔍 Fetching venue with ID:', id);
         const response = await venueService.getVenueById(id);
         // console.log('📡 API Response:', response);
-        
+
         console.log(response);
         // if (!response?.data.data.venue) {
         //   throw new Error('Invalid API response: missing venue data');
         // }
 
         console.log("Kcuh to locah haiiiii");
-        
+
         const venueData = response.data.data.venue;
         console.log('🏟️ Venue Data:', venueData);
-        
+
         setVenue(venueData);
         setActiveSport(venueData.sports?.[0] || '');
       } catch (e) {
@@ -43,7 +43,7 @@ const VenueDetails = () => {
         setLoading(false);
       }
     };
-    
+
     fetchVenueDetails();
   }, [id]);
 
@@ -108,14 +108,14 @@ const VenueDetails = () => {
             <img src={getVenueImage()} alt={venue.name} className="media-img" />
             {venue.images && venue.images.length > 1 && (
               <div className="carousel-nav">
-                <button 
-                  className="carousel-btn" 
+                <button
+                  className="carousel-btn"
                   onClick={() => setImgIndex((i) => (i - 1 + venue.images.length) % venue.images.length)}
                 >
                   {'<'}
                 </button>
-                <button 
-                  className="carousel-btn" 
+                <button
+                  className="carousel-btn"
                   onClick={() => setImgIndex((i) => (i + 1) % venue.images.length)}
                 >
                   {'>'}
@@ -123,7 +123,7 @@ const VenueDetails = () => {
               </div>
             )}
           </div>
-          
+
           <div className="info-panel">
             <div className="info-card">
               <div style={{ fontWeight: 700, marginBottom: 6 }}>Operating Hours</div>
@@ -158,9 +158,9 @@ const VenueDetails = () => {
             <div className="section-title">Sports Available</div>
             <div className="sports-row">
               {venue.sports.map((sport) => (
-                <button 
-                  key={sport} 
-                  className={`sport-tile ${activeSport === sport ? 'active' : ''}`} 
+                <button
+                  key={sport}
+                  className={`sport-tile ${activeSport === sport ? 'active' : ''}`}
                   onClick={() => setActiveSport(sport)}
                 >
                   <div className="sport-icon">{getSportIcon(sport)}</div>
@@ -247,18 +247,18 @@ const VenueDetails = () => {
           <div className="section">
             <div className="section-title">Recent Reviews</div>
             <div className="review-list">
-              {/* {venue.recentReviews.map((review) => (
+              {venue.recentReviews.map((review) => (
                 <div key={review._id} className="review-item">
                   <div className="review-top">
                     <div className="review-name">
-                      {review.user?.name || 'Anonymous'} — {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                      {review.user?.name || 'Anonymous'} — {'★'.repeat(review.rating)}{'⭐'.repeat(review.rating.overall)}
                     </div>
                     <div>📅 {new Date(review.createdAt).toLocaleDateString()}</div>
                   </div>
                   <div style={{ marginTop: 6 }}>{review.comment}</div>
                 </div>
-              ))} */}
-              <ReviewList venueId={venueId} />
+              ))}
+              {/* <ReviewList venueId={venueId} /> */}
             </div>
           </div>
         )}

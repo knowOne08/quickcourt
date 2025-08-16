@@ -37,6 +37,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 // Styles
 import './styles/globals.css';
 import './styles/odoo-theme.css';
+import 'leaflet/dist/leaflet.css'
 
 function App() {
   return (

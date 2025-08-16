@@ -1,0 +1,166 @@
+/* General styles for the Add Review page container */
+.add-review-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+  padding: 2rem 1rem;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+/* The main form container with a card-like appearance */
+.review-form {
+  background-color: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.review-form h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin: 0;
+}
+
+.review-form p {
+  text-align: center;
+  color: #666;
+  margin-top: -1rem;
+}
+
+/* Container for all star rating categories */
+.ratings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 1.5rem 0;
+}
+
+/* Styles for a single star rating row */
+.star-rating {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.star-rating label {
+  font-size: 1rem;
+  color: #444;
+  font-weight: 500;
+}
+
+/* Container for the star characters */
+.star-rating .stars {
+  display: flex;
+  direction: ltr; /* Ensure stars are left-to-right */
+}
+
+/* Individual star styling */
+.star-rating .stars span {
+  font-size: 2.2rem;
+  color: #e0e0e0; /* Default empty star color */
+  cursor: pointer;
+  transition:
+    color 0.2s ease-in-out,
+    transform 0.1s ease-in-out;
+}
+
+/* Filled star color */
+.star-rating .stars .star-filled {
+  color: #ffc107;
+}
+
+/* Pure CSS hover effect */
+.star-rating .stars:hover span {
+  color: #ffdd7a; /* Lighter gold for hover preview */
+}
+
+.star-rating .stars span:hover ~ span {
+  color: #e0e0e0; /* Reset subsequent stars on hover */
+}
+
+/* Styling for form groups (label + input/textarea) */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #444;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #714b67;
+  box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Submit button styling */
+.submit-btn {
+  background-color: #714b67;
+  color: white;
+  border: none;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
+  margin-top: 1rem;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #5a3a52;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Error message styling */
+.error-message {
+  color: #d9534f;
+  background-color: #f2dede;
+  border: 1px solid #ebccd1;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+}

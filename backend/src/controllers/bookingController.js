@@ -62,7 +62,7 @@ exports.createBooking = async (req, res) => {
       data: {
         booking
       }
-      
+
     });
   } catch (error) {
     res.status(400).json({
@@ -109,12 +109,12 @@ exports.getAvailableSlots = async (req, res) => {
   try {
     const { courtId, date } = req.params;
     const { duration } = req.query; // Get duration from query params
-    
+
     // Parse duration, default to 60 minutes if not provided
     const slotDuration = duration ? parseInt(duration) : 60;
-    
+
     const availableSlots = await bookingService.getAvailableSlots(courtId, date, slotDuration);
-    
+
     res.status(200).json({
       status: 'success',
       data: availableSlots
@@ -134,7 +134,7 @@ exports.cancelBooking = async (req, res) => {
     const userId = req.user.id;
 
     const booking = await Booking.findById(id);
-    
+
     if (!booking) {
       return res.status(404).json({
         status: 'error',
@@ -243,7 +243,7 @@ exports.addReview = async (req, res) => {
     }
 
     // Check if booking is completed
-    if (booking.status !== 'completed') {
+    if (booking.status !== 'confirmed') {
       return res.status(400).json({
         status: 'error',
         message: 'Can only review completed bookings'

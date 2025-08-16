@@ -167,13 +167,13 @@ const Profile = () => {
     try {
       setSaving(true);
       await userService.updateProfile({ name: fullName, phoneNumber });
-      
+
       let passwordChanged = false;
       if (oldPassword && newPassword) {
         await userService.changePassword(oldPassword, newPassword);
         passwordChanged = true;
       }
-      
+
       if (passwordChanged) {
         // If password was changed, log out the user and redirect to login
         alert('Password changed successfully! Please log in again with your new password.');
@@ -181,7 +181,7 @@ const Profile = () => {
         navigate('/login');
         return;
       }
-      
+
       await loadUser();
       setOldPassword('');
       setNewPassword('');
@@ -405,7 +405,7 @@ const Profile = () => {
               Push notifications
             </label>
           </div>
-          
+
           <div className="preference-group">
             <h4>Privacy</h4>
             <label className="checkbox-label">
@@ -440,7 +440,7 @@ const Profile = () => {
           />
           {errors.fullName && <small className="field-error">{errors.fullName}</small>}
         </div>
-        
+
         <div className="form-field">
           <label className="label">Email</label>
           <input
@@ -454,7 +454,7 @@ const Profile = () => {
           />
           {errors.email && <small className="field-error">{errors.email}</small>}
         </div>
-        
+
         <div className="form-field">
           <label className="label">Phone Number</label>
           <input
@@ -466,7 +466,7 @@ const Profile = () => {
             placeholder="Your phone number"
           />
         </div>
-        
+
         <div className="form-field">
           <label className="label">Old Password</label>
           <input
@@ -480,7 +480,7 @@ const Profile = () => {
           />
           {errors.oldPassword && <small className="field-error">{errors.oldPassword}</small>}
         </div>
-        
+
         <div className="form-field">
           <label className="label">New Password</label>
           <input
@@ -494,7 +494,7 @@ const Profile = () => {
           />
           {errors.newPassword && <small className="field-error">{errors.newPassword}</small>}
         </div>
-        
+
         <div className="form-actions">
           <button className="btn" type="button" onClick={() => { setOldPassword(''); setNewPassword(''); }}>Reset</button>
           <button className="btn primary" type="button" disabled={saving} onClick={handleProfileSave}>

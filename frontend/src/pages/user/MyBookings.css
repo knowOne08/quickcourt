@@ -99,8 +99,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .retry-btn {
@@ -217,21 +221,21 @@
   .bookings-container {
     padding: 0 16px;
   }
-  
+
   .bookings-header h1 {
     font-size: 2rem;
   }
-  
+
   .bookings-tabs {
     flex-wrap: wrap;
     gap: 4px;
   }
-  
+
   .tab-btn {
     padding: 10px 16px;
     font-size: 0.85rem;
   }
-  
+
   .bookings-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 20px;
@@ -242,56 +246,56 @@
   .my-bookings-page {
     padding: 16px 0;
   }
-  
+
   .bookings-header h1 {
     font-size: 1.8rem;
   }
-  
+
   .bookings-header p {
     font-size: 1rem;
   }
-  
+
   .bookings-tabs {
     flex-direction: column;
     gap: 4px;
   }
-  
+
   .tab-btn {
     width: 100%;
     text-align: center;
   }
-  
+
   .bookings-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .no-bookings {
     padding: 40px 16px;
   }
-  
+
   .no-bookings-icon {
     font-size: 3rem;
   }
-  
+
   .no-bookings h3 {
     font-size: 1.3rem;
   }
-  
+
   .no-bookings p {
     font-size: 1rem;
   }
-  
+
   .book-now-btn {
     padding: 12px 24px;
     font-size: 1rem;
   }
-  
+
   .pagination {
     flex-wrap: wrap;
     gap: 6px;
   }
-  
+
   .page-btn {
     padding: 8px 12px;
     min-width: 40px;
@@ -303,52 +307,91 @@
   .bookings-container {
     padding: 0 12px;
   }
-  
+
   .bookings-header h1 {
     font-size: 1.6rem;
   }
-  
+
   .bookings-header p {
     font-size: 0.9rem;
   }
-  
+
   .bookings-tabs {
     padding: 6px;
   }
-  
+
   .tab-btn {
     padding: 8px 12px;
     font-size: 0.8rem;
   }
-  
+
   .bookings-grid {
     gap: 12px;
   }
-  
+
   .no-bookings {
     padding: 30px 12px;
   }
-  
+
   .no-bookings-icon {
     font-size: 2.5rem;
   }
-  
+
   .no-bookings h3 {
     font-size: 1.2rem;
   }
-  
+
   .no-bookings p {
     font-size: 0.9rem;
   }
-  
+
   .book-now-btn {
     padding: 10px 20px;
     font-size: 0.9rem;
   }
-  
+
   .page-btn {
     padding: 6px 10px;
     min-width: 36px;
     font-size: 0.8rem;
   }
+}
+
+/* Main container for the sub-filter buttons */
+.bookings-sub-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: -1rem; /* Pull it closer to the main tabs */
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Individual sub-filter button styling */
+.sub-tab-btn {
+  background-color: #f9f9f9;
+  color: #555;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  border-radius: 20px; /* Pill shape */
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Hover effect for sub-filter buttons */
+.sub-tab-btn:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+/* Active state for the selected sub-filter button */
+.sub-tab-btn.active {
+  background-color: #714b67; /* Odoo primary theme color */
+  color: #ffffff;
+  border-color: #714b67;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

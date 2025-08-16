@@ -89,8 +89,8 @@
 }
 .sidebar-btn.active {
   background: #f3f4ff;
-  border-color: #6366f1;
-  color: #3730a3;
+  border-color: var(--odoo-primary);
+  color: var(--primary-600);
 }
 
 /* Main content */
@@ -351,8 +351,8 @@
 }
 .tab-chip.active {
   background: #f3f4ff;
-  border-color: #6366f1;
-  color: #3730a3;
+  border-color: var(--odoo-primary);
+  color: var(--primary-600);
 }
 
 .booking-list {
@@ -393,7 +393,7 @@
 .btn.primary {
   background: var(--primary);
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--odoo-primary);
 }
 .btn.primary:hover {
   background: var(--primary-600);
@@ -409,12 +409,12 @@
 .btn.link {
   background: transparent;
   border: none;
-  color: #6366f1;
+  color: var(--odoo-primary);
   text-decoration: underline;
   padding: 0;
 }
 .btn.link:hover {
-  color: #4f46e5;
+  color: var(--primary-600);
 }
 .btn:disabled {
   opacity: 0.6;
@@ -444,8 +444,8 @@
   transition: border-color 0.2s ease;
 }
 .input:focus {
-  outline: 2px solid #c7d2fe;
-  border-color: #a5b4fc;
+  outline: 2px solid var(--primary-600);
+  border-color: var(--odoo-primary);
 }
 .input-error {
   border-color: #ef4444;
@@ -489,20 +489,20 @@
   .profile-content {
     padding: 24px;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .favorites-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
-  
+
   .favorite-item {
     grid-template-columns: 1fr;
     text-align: center;
   }
-  
+
   .venue-actions {
     flex-direction: row;
     justify-content: center;
@@ -513,20 +513,20 @@
   .profile-page {
     padding: 16px;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .favorites-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .booking-meta {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .booking-actions {
     flex-direction: column;
   }

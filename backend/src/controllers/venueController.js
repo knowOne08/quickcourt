@@ -25,7 +25,7 @@ exports.getAllVenues = async (req, res) => {
 
     // Build query using indexed fields for better performance
     const query = { status: 'approved', isActive: true };
-    
+
     console.log('Venue search params:', req.query);
 
     // Text search has highest priority
@@ -181,7 +181,7 @@ exports.searchVenues = async (req, res) => {
       });
 
       total = searchResults.length;
-      
+
       // Apply pagination
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + parseInt(limit);
@@ -997,9 +997,9 @@ exports.getSearchSuggestions = async (req, res) => {
       isActive: true,
       name: { $regex: searchTerm, $options: 'i' }
     })
-    .select('name location.city location.address')
-    .limit(parseInt(limit))
-    .lean();
+      .select('name location.city location.address')
+      .limit(parseInt(limit))
+      .lean();
 
     // Get location suggestions (cities and areas)
     const locationSuggestions = await Venue.aggregate([

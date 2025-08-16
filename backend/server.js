@@ -124,10 +124,10 @@ const loadRoute = (routePath, mountPath, routeName) => {
   } catch (error) {
     logger.error(`❌ Failed to load ${routeName} routes: ${error.message}`);
     logger.error(`❌ Error stack: ${error.stack}`);
-    
+
     // Create a fallback route
     app.use(mountPath, (req, res) => {
-      res.json({ 
+      res.json({
         success: false,
         message: `${routeName} routes not implemented yet`,
         error: error.message,
@@ -148,6 +148,8 @@ loadRoute('./src/routes/bookings', '/api/bookings', 'Booking');
 loadRoute('./src/routes/payments', '/api/payments', 'Payment');
 loadRoute('./src/routes/owner', '/api/owner', 'Owner');
 loadRoute('./src/routes/admin', '/api/admin', 'Admin');
+loadRoute('./src/routes/admin', '/api/admin', 'Admin');
+loadRoute('./src/routes/reviewRoutes', '/api/reviews', 'Review');
 
 logger.info('📋 Route loading completed');
 
@@ -163,7 +165,7 @@ app.use('*', (req, res) => {
 app.use((err, req, res, next) => {
   logger.error(`Global error handler: ${err.message}`);
   logger.error(`Stack: ${err.stack}`);
-  
+
   res.status(err.status || 500).json({
     success: false,
     error: process.env.NODE_ENV === 'production' ? 'Server Error' : err.message,

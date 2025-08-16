@@ -15,7 +15,11 @@
 
 .page-header {
   padding: 2rem;
-  background: linear-gradient(135deg, var(--odoo-primary), var(--odoo-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--odoo-primary),
+    var(--odoo-secondary)
+  );
   color: var(--white);
   text-align: center;
 }
@@ -49,7 +53,8 @@
 }
 
 /* Loading and Error States */
-.loading-container, .error-container {
+.loading-container,
+.error-container {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -69,8 +74,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-message {
@@ -239,9 +248,10 @@
 .venue-courts,
 .venue-price,
 .venue-rating {
-  border-left: 3px solid var(--border-gray);
+  /* border-left: 3px solid var(--border-gray);
   padding-left: 0.75rem;
-  margin-left: 1rem;
+  margin-left: 1rem; */
+  margin-bottom: 10px;
 }
 
 .venue-actions {
@@ -437,49 +447,49 @@
   .facility-management-page {
     padding: 1rem;
   }
-  
+
   .venues-grid {
     grid-template-columns: 1fr;
     padding: 1rem;
   }
-  
+
   .venue-modal {
     width: 95vw;
     margin: 1rem;
   }
-  
+
   .modal-content {
     max-height: 95vh;
   }
-  
+
   .venue-form {
     padding: 1rem;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .checkbox-group {
     grid-template-columns: 1fr;
   }
-  
+
   .venue-actions {
     flex-direction: column;
   }
-  
+
   .venue-actions .btn {
     flex: none;
   }
-  
+
   .modal-actions {
     flex-direction: column-reverse;
   }
-  
+
   .page-header {
     padding: 1.5rem;
   }
-  
+
   .facility-actions {
     padding: 1rem;
   }
