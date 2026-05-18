@@ -66,14 +66,14 @@ const VenuesList = () => {
                 <FiFilter size={24} />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase">Filter Matrix</h3>
-                <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] italic">Operational Tuning</p>
+                <h3 className="text-2xl font-extrabold text-white">Filter Venues</h3>
+                <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Search Filters</p>
               </div>
             </div>
 
             <div className="relative z-10 space-y-10">
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block px-1 italic flex items-center gap-2"><FiSearch className="text-primary" /> LOCATION / IDENTITY</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block px-1 flex items-center gap-2"><FiSearch className="text-primary" /> LOCATION / NAME</label>
                 <div className="relative group/search">
                   <SearchWithSuggestions
                     value={filters.search}
@@ -81,20 +81,20 @@ const VenuesList = () => {
                     onSearch={handleSearch}
                     onSuggestionSelect={handleSuggestionSelect}
                     getSuggestions={getSearchSuggestions}
-                    placeholder="SEARCH COORDINATES..."
-                    className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-2 text-sm font-black text-white focus-within:border-primary transition-all duration-500 italic uppercase"
+                    placeholder="Search venues..."
+                    className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-2 text-sm font-semibold text-white focus-within:border-primary transition-all duration-500"
                   />
                 </div>
               </div>
 
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block px-1 italic flex items-center gap-2"><FiActivity className="text-primary" /> SPORTING SECTOR</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block px-1 flex items-center gap-2"><FiActivity className="text-primary" /> SPORT / CATEGORY</label>
                 <select
                   value={filters.sport}
                   onChange={(e) => handleFilterChange({ sport: e.target.value })}
-                  className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-white focus:border-primary transition-all duration-500 outline-none italic uppercase appearance-none"
+                  className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-semibold text-white focus:border-primary transition-all duration-500 outline-none appearance-none cursor-pointer"
                 >
-                  <option value="" className="bg-gray-900">ALL DISCIPLINES</option>
+                  <option value="" className="bg-gray-900">ALL SPORTS</option>
                   {['badminton', 'football', 'cricket', 'tennis', 'basketball', 'table_tennis', 'volleyball'].map(sport => (
                     <option key={sport} value={sport} className="bg-gray-900">{sport.replace('_', ' ')}</option>
                   ))}
@@ -102,45 +102,45 @@ const VenuesList = () => {
               </div>
 
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block px-1 italic flex items-center gap-2"><FiTrendingUp className="text-primary" /> BUDGET PARAMETERS (₹/HR)</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block px-1 flex items-center gap-2"><FiTrendingUp className="text-primary" /> PRICE RANGE (₹/HR)</label>
                 <div className="grid grid-cols-2 gap-4">
                   <input
                     type="number"
                     placeholder="MIN"
                     value={filters.minPrice}
                     onChange={(e) => handleFilterChange({ minPrice: parseInt(e.target.value) || 0 })}
-                    className="bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-white focus:border-primary transition-all duration-500 outline-none italic uppercase"
+                    className="bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-semibold text-white focus:border-primary transition-all duration-500 outline-none"
                   />
                   <input
                     type="number"
                     placeholder="MAX"
                     value={filters.maxPrice}
                     onChange={(e) => handleFilterChange({ maxPrice: parseInt(e.target.value) || 5000 })}
-                    className="bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-white focus:border-primary transition-all duration-500 outline-none italic uppercase"
+                    className="bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-semibold text-white focus:border-primary transition-all duration-500 outline-none"
                   />
                 </div>
               </div>
 
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block px-1 italic flex items-center gap-2"><FiShield className="text-primary" /> INTEGRITY RANKING</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block px-1 flex items-center gap-2"><FiShield className="text-primary" /> MINIMUM RATING</label>
                 <select
                   value={filters.rating}
                   onChange={(e) => handleFilterChange({ rating: parseInt(e.target.value) })}
-                  className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-white focus:border-primary transition-all duration-500 outline-none italic uppercase appearance-none"
+                  className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-semibold text-white focus:border-primary transition-all duration-500 outline-none appearance-none cursor-pointer"
                 >
-                  <option value="0" className="bg-gray-900">ANY INTEGRITY</option>
-                  <option value="5" className="bg-gray-900">ELITE (5★)</option>
-                  <option value="4" className="bg-gray-900">HIGH CLASS (4★+)</option>
-                  <option value="3" className="bg-gray-900">RELIABLE (3★+)</option>
-                  <option value="2" className="bg-gray-900">VALUE (2★+)</option>
+                  <option value="0" className="bg-gray-900">ANY RATING</option>
+                  <option value="5" className="bg-gray-900">5 Stars (5★)</option>
+                  <option value="4" className="bg-gray-900">4 Stars & above (4★+)</option>
+                  <option value="3" className="bg-gray-900">3 Stars & above (3★+)</option>
+                  <option value="2" className="bg-gray-900">2 Stars & above (2★+)</option>
                 </select>
               </div>
 
               <button
-                className="w-full py-6 rounded-[24px] font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 border-2 border-dashed border-white/10 hover:border-primary hover:text-primary transition-all duration-500 flex items-center justify-center gap-3 italic"
+                className="w-full py-6 rounded-[24px] font-bold text-xs uppercase tracking-wider text-gray-400 border-2 border-dashed border-white/10 hover:border-primary hover:text-primary transition-all duration-500 flex items-center justify-center gap-3"
                 onClick={clearFilters}
               >
-                <FiXCircle /> RESET PARAMETERS
+                <FiXCircle /> RESET FILTERS
               </button>
             </div>
           </div>
@@ -151,15 +151,15 @@ const VenuesList = () => {
           <header className="flex flex-col md:flex-row md:items-end justify-between gap-12">
             <div className="space-y-4">
               <div className="w-16 h-1 bg-primary rounded-full mb-8 shadow-lg shadow-primary/20" />
-              <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter uppercase italic leading-none">Global <span className="text-primary">Facilities</span></h2>
-              <p className="text-xl text-gray-400 font-medium italic max-w-2xl leading-relaxed">Discover and synchronize with high-performance sports infrastructure across the matrix.</p>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-none">Explore <span className="text-primary">Venues</span></h2>
+              <p className="text-xl text-gray-400 font-medium max-w-2xl leading-relaxed">Find and book the perfect sports venue near you.</p>
             </div>
             <div className="flex items-center gap-4 bg-gray-50 px-8 py-5 rounded-[24px] border border-gray-100 shadow-premium shrink-0 group">
               <FiGrid className="text-primary text-xl group-hover:scale-110 transition-transform" />
               <div className="flex flex-col">
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest italic">REGISTRY SCAN</span>
-                <span className="text-sm font-black text-gray-900 uppercase italic">
-                  {venues.length} UNITS DETECTED
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">RESULTS</span>
+                <span className="text-sm font-bold text-gray-900 uppercase">
+                  {venues.length} VENUES FOUND
                 </span>
               </div>
             </div>
@@ -178,11 +178,11 @@ const VenuesList = () => {
                   <FiAlertCircle size={60} />
                 </div>
                 <div className="text-center space-y-3">
-                  <h3 className="text-4xl font-black text-red-900 uppercase italic tracking-tighter leading-none">Signal Failure</h3>
-                  <p className="text-xl text-red-600 font-medium italic max-w-md mx-auto leading-relaxed">{error}</p>
+                  <h3 className="text-4xl font-extrabold text-red-900 leading-none">Failed to load venues</h3>
+                  <p className="text-xl text-red-600 font-medium max-w-md mx-auto leading-relaxed">{error}</p>
                 </div>
-                <button onClick={() => fetchVenues(filters)} className="bg-red-500 text-white px-16 py-6 rounded-[30px] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:scale-110 transition-all duration-500 italic">
-                  RETRY CONNECTION
+                <button onClick={() => fetchVenues(filters)} className="bg-red-500 text-white px-16 py-6 rounded-[30px] font-bold text-xs uppercase tracking-wider shadow-2xl hover:scale-105 transition-all duration-500">
+                  RETRY
                 </button>
               </div>
             ) : venues.length > 0 ? (
@@ -199,11 +199,11 @@ const VenuesList = () => {
                   <FiBox />
                 </div>
                 <div className="space-y-3">
-                  <h3 className="text-4xl font-black text-gray-800 uppercase italic tracking-tighter">Sector Clear</h3>
-                  <p className="text-xl text-gray-400 font-medium italic max-w-lg mx-auto leading-relaxed">No high-grade venues identified with current parameters. Adjust your tuning.</p>
+                  <h3 className="text-4xl font-extrabold text-gray-800 leading-none">No Venues Found</h3>
+                  <p className="text-xl text-gray-400 font-medium max-w-lg mx-auto leading-relaxed">No venues match your current filters. Please try resetting your search parameters.</p>
                 </div>
-                <button onClick={clearFilters} className="bg-primary text-white px-16 py-6 rounded-[30px] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:scale-110 transition-all duration-500 italic">
-                  RESET MATRIX TUNING
+                <button onClick={clearFilters} className="bg-primary text-white px-16 py-6 rounded-[30px] font-bold text-xs uppercase tracking-wider shadow-2xl hover:scale-105 transition-all duration-500">
+                  RESET FILTERS
                 </button>
               </div>
             )}
@@ -219,7 +219,7 @@ const VenuesList = () => {
               >
                 <FiChevronLeft size={32} />
               </button>
-              <div className="bg-gray-900 px-12 py-6 rounded-[30px] font-black text-white text-lg italic shadow-2xl border border-white/5 uppercase tracking-widest">
+              <div className="bg-gray-900 px-12 py-6 rounded-[30px] font-bold text-white text-lg shadow-2xl border border-white/5 uppercase tracking-wider">
                 <span className="text-primary">{pagination.currentPage}</span> <span className="text-white/20 mx-2">/</span> {pagination.totalPages}
               </div>
               <button

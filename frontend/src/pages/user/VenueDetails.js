@@ -34,11 +34,11 @@ const VenueDetails = () => {
             const favs = favRes.data?.favorites || [];
             setIsFavorite(favs.some(f => (f._id || f) === id));
           } catch (favErr) {
-            console.error('Favorite synchronization failure');
+            console.error('Failed to sync favorites status');
           }
         }
       } catch (e) {
-        setError(`Sector synchronization aborted: ${e.message}`);
+        setError(`Failed to load venue details: ${e.message}`);
       } finally {
         setLoading(false);
       }
@@ -49,7 +49,7 @@ const VenueDetails = () => {
 
   const toggleFavorite = async () => {
     if (!isAuthenticated) {
-      toast.error('Authentication required for sanctuary storage');
+      toast.error('Please login to add to favorites');
       navigate('/login', { state: { from: `/venue/${id}` } });
       return;
     }
@@ -59,14 +59,14 @@ const VenueDetails = () => {
       if (isFavorite) {
         await userService.removeFavorite(id);
         setIsFavorite(false);
-        toast.success('Removed from personal matrix');
+        toast.success('Removed from favorites');
       } else {
         await userService.addFavorite(id);
         setIsFavorite(true);
-        toast.success('Stored in personal sanctuary!');
+        toast.success('Added to favorites!');
       }
     } catch (err) {
-      toast.error('Synchronization failed');
+      toast.error('Failed to update favorites');
     } finally {
       setFavoriteLoading(false);
     }
@@ -74,7 +74,7 @@ const VenueDetails = () => {
 
   const handleBooking = () => {
     if (!isAuthenticated) {
-      toast.error('Authentication required for reservation protocol');
+      toast.error('Please login to book a court');
       navigate('/login', { state: { from: `/venue/${id}` } });
       return;
     }
@@ -99,7 +99,7 @@ const VenueDetails = () => {
       <div className="w-16 h-1 bg-gray-100 rounded-full mb-8 overflow-hidden">
         <div className="w-1/2 h-full bg-primary animate-progress-fast"></div>
       </div>
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] italic">SYNCHRONIZING ARENA DATA...</p>
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">LOADING VENUE DATA...</p>
     </div>
   );
 
@@ -108,9 +108,9 @@ const VenueDetails = () => {
       <div className="w-32 h-32 bg-red-50 text-red-500 rounded-[40px] flex items-center justify-center shadow-premium mb-10 border border-red-100">
         <FiBox size={60} />
       </div>
-      <h2 className="text-4xl font-black text-gray-900 mb-4 italic uppercase tracking-tighter leading-none">Access <span className="text-red-500">Denied</span></h2>
-      <p className="text-xl text-gray-400 font-medium italic max-w-sm mb-12 leading-relaxed">{error}</p>
-      <button onClick={() => navigate(-1)} className="bg-gray-900 text-white px-16 py-6 rounded-[32px] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-primary transition-all duration-500 italic">INITIALIZE REBOUND</button>
+      <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Error Loading Venue</h2>
+      <p className="text-xl text-gray-400 font-medium max-w-sm mb-12 leading-relaxed">{error}</p>
+      <button onClick={() => navigate(-1)} className="bg-gray-900 text-white px-16 py-6 rounded-[32px] font-bold text-xs uppercase tracking-widest shadow-2xl hover:bg-primary transition-all duration-500">GO BACK</button>
     </div>
   );
 
@@ -131,13 +131,13 @@ const VenueDetails = () => {
           <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row justify-between items-end gap-12">
             <div className="animate-fade-in space-y-6 max-w-4xl">
               <div className="flex items-center gap-4">
-                <span className="bg-primary/20 backdrop-blur-xl text-primary border border-primary/30 text-[10px] font-black px-6 py-2 rounded-full uppercase tracking-[0.3em] italic shadow-2xl">{venue.venueType || 'PREMIUM FACILITY'}</span>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl text-white border border-white/20 text-[10px] font-black px-4 py-2 rounded-full italic tracking-[0.2em] shadow-2xl">
-                  <FiStar className="text-primary" /> {venue.rating?.average || 0} INTEGRITY
+                <span className="bg-primary/20 backdrop-blur-xl text-primary border border-primary/30 text-xs font-bold px-6 py-2 rounded-full uppercase tracking-wider shadow-2xl">{venue.venueType || 'PREMIUM FACILITY'}</span>
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl text-white border border-white/20 text-xs font-bold px-4 py-2 rounded-full tracking-wider shadow-2xl">
+                  <FiStar className="text-primary fill-primary" /> {venue.rating?.average || 0} RATING
                 </div>
               </div>
-              <h1 className="text-6xl md:text-8xl font-black text-white leading-none tracking-tighter uppercase italic">{venue.name}</h1>
-              <p className="text-xl md:text-2xl text-gray-300 flex items-center gap-3 font-medium italic leading-relaxed">
+              <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight">{venue.name}</h1>
+              <p className="text-lg md:text-xl text-gray-300 flex items-center gap-3 font-medium leading-relaxed">
                 <FiMapPin className="text-primary text-2xl" /> {formatLocation(venue.location)}
               </p>
             </div>
@@ -153,9 +153,9 @@ const VenueDetails = () => {
               </button>
               <button 
                 onClick={handleBooking}
-                className="flex-1 lg:flex-none bg-primary text-white px-20 py-8 rounded-[32px] font-black text-xl shadow-2xl shadow-primary/30 hover:bg-white hover:text-primary transition-all duration-500 transform hover:-translate-y-2 active:scale-95 italic uppercase tracking-[0.1em]"
+                className="flex-1 lg:flex-none bg-primary text-white px-20 py-8 rounded-[32px] font-bold text-xl shadow-2xl shadow-primary/30 hover:bg-white hover:text-primary transition-all duration-500 transform hover:-translate-y-2 active:scale-95 uppercase tracking-wider"
               >
-                INITIALIZE RESERVATION
+                BOOK NOW
               </button>
             </div>
           </div>
@@ -190,14 +190,14 @@ const VenueDetails = () => {
                 { label: 'OPEN TIME', value: `${venue.availability?.openTime || '06:00'}`, icon: <FiClock />, color: 'primary' },
                 { label: 'CLOSE TIME', value: `${venue.availability?.closeTime || '22:00'}`, icon: <FiShield />, color: 'primary' },
                 { label: 'BASE RATE', value: `₹${venue.pricing?.hourly || 500}`, icon: <FiDollarSign />, color: 'primary' },
-                { label: 'FEEDBACK', value: `${venue.rating?.count || 0} REVIEWS`, icon: <FiStar />, color: 'primary' },
+                { label: 'REVIEWS', value: `${venue.rating?.count || 0} REVIEWS`, icon: <FiStar />, color: 'primary' },
               ].map((item, idx) => (
                 <div key={idx} className="bg-white p-8 rounded-[40px] shadow-premium border border-gray-100 flex flex-col items-center text-center group hover:border-primary/20 transition-all duration-500">
-                  <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-primary text-2xl mb-4 group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                    {item.icon}
-                  </div>
-                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1 italic">{item.label}</p>
-                  <h4 className="text-sm font-black text-gray-900 uppercase italic tracking-tight">{item.value}</h4>
+                   <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-primary text-2xl mb-4 group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                     {item.icon}
+                   </div>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">{item.label}</p>
+                  <h4 className="text-sm font-bold text-gray-900 uppercase tracking-tight">{item.value}</h4>
                 </div>
               ))}
             </div>
@@ -208,9 +208,9 @@ const VenueDetails = () => {
               <div className="relative z-10 space-y-8">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-1 bg-primary rounded-full" />
-                  <h3 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">Venue <span className="text-primary">Intelligence</span></h3>
+                  <h3 className="text-2xl font-extrabold text-gray-900">About the <span className="text-primary">Venue</span></h3>
                 </div>
-                <p className="text-xl text-gray-500 leading-relaxed font-medium italic">{venue.description || "No tactical briefing available for this facility coordinates."}</p>
+                <p className="text-xl text-gray-600 leading-relaxed font-medium">{venue.description || "No description available for this venue."}</p>
               </div>
             </div>
 
@@ -218,31 +218,31 @@ const VenueDetails = () => {
             <div className="space-y-8">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-1 bg-primary rounded-full shadow-lg shadow-primary/20" />
-                <h3 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter flex items-center gap-4">
-                  <FiGrid className="text-primary" /> Available <span className="text-primary">Matrices</span>
+                <h3 className="text-2xl font-extrabold text-gray-900 flex items-center gap-4">
+                  <FiGrid className="text-primary" /> Available <span className="text-primary">Courts</span>
                 </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {(venue.courts || []).map((court) => (
                   <div key={court._id} className="bg-white p-10 rounded-[50px] border border-gray-100 shadow-premium group hover:shadow-2xl transition-all duration-700 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 px-8 py-3 bg-primary text-white text-[10px] font-black uppercase tracking-widest italic rounded-bl-[30px]">₹{court.pricePerHour}/HR</div>
+                    <div className="absolute top-0 right-0 px-8 py-3 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-bl-[30px]">₹{court.pricePerHour}/hr</div>
                     <div className="space-y-8 mt-4">
                       <div className="space-y-2">
-                        <h4 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter group-hover:text-primary transition-colors">{court.name}</h4>
-                        <div className="flex items-center gap-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic">
-                          <FiActivity className="text-primary" /> {court.type} SECTOR <span className="text-gray-200">|</span> {court.surface} SURFACE
+                        <h4 className="text-xl font-extrabold text-gray-900 group-hover:text-primary transition-colors">{court.name}</h4>
+                        <div className="flex items-center gap-3 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          <FiActivity className="text-primary" /> {court.type} Court <span className="text-gray-200">|</span> {court.surface} Surface
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-3">
                         {(court.amenities || []).slice(0, 3).map((am, i) => (
-                          <span key={i} className="text-[9px] font-black text-primary bg-primary/5 px-4 py-2 rounded-xl uppercase tracking-widest italic border border-primary/10 shadow-sm">{am}</span>
+                          <span key={i} className="text-xs font-bold text-primary bg-primary/5 px-4 py-2 rounded-xl uppercase tracking-wider border border-primary/10 shadow-sm">{am}</span>
                         ))}
                       </div>
                       <button 
                         onClick={handleBooking}
-                        className="w-full py-6 rounded-[24px] border-2 border-primary/10 text-primary font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 italic shadow-sm group-hover:shadow-lg"
+                        className="w-full py-6 rounded-[24px] border-2 border-primary/10 text-primary font-bold text-xs uppercase tracking-widest hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 shadow-sm group-hover:shadow-lg"
                       >
-                        CHECK OPERATIONAL WINDOW
+                        BOOK COURT
                       </button>
                     </div>
                   </div>
@@ -256,13 +256,13 @@ const VenueDetails = () => {
               <div className="relative z-10 space-y-12">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-1 bg-primary rounded-full shadow-lg shadow-primary/20" />
-                  <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">Venue <span className="text-primary">Infrastucture</span></h3>
+                  <h3 className="text-2xl font-extrabold text-white leading-none">Venue <span className="text-primary">Amenities</span></h3>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-10">
                   {(venue.amenities || []).map((am, idx) => (
                     <div key={idx} className="flex items-center gap-4 group cursor-pointer">
                       <div className="w-4 h-4 rounded-full bg-primary/20 border border-primary/30 transition-all duration-500 group-hover:bg-primary group-hover:shadow-[0_0_15px_rgba(113,75,103,0.8)]"></div>
-                      <span className="text-sm font-black text-gray-300 uppercase tracking-[0.2em] italic group-hover:text-white transition-colors">{am.replace('_', ' ')}</span>
+                      <span className="text-sm font-bold text-gray-300 uppercase tracking-wider group-hover:text-white transition-colors">{am.replace('_', ' ')}</span>
                     </div>
                   ))}
                 </div>
@@ -278,7 +278,7 @@ const VenueDetails = () => {
               <div className="relative z-10 space-y-10">
                 <div className="flex items-center gap-4">
                   <FiPhone className="text-primary text-3xl" />
-                  <h3 className="text-2xl font-black uppercase italic tracking-tighter">Comms <span className="text-primary">Center</span></h3>
+                  <h3 className="text-xl font-extrabold uppercase">Contact <span className="text-primary">Info</span></h3>
                 </div>
                 <div className="space-y-8">
                   <div className="flex items-center gap-5 group cursor-pointer">
@@ -286,8 +286,8 @@ const VenueDetails = () => {
                       <FiPhone size={24} />
                     </div>
                     <div>
-                      <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.3em] italic">SIGNAL FREQUENCY</p>
-                      <p className="text-lg font-black italic tracking-tight">{venue.contact?.phone || "N/A"}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">PHONE NUMBER</p>
+                      <p className="text-base font-bold tracking-tight">{venue.contact?.phone || "N/A"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-5 group cursor-pointer">
@@ -295,8 +295,8 @@ const VenueDetails = () => {
                       <FiMail size={24} />
                     </div>
                     <div>
-                      <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.3em] italic">DATA TRANSMISSION</p>
-                      <p className="text-lg font-black italic tracking-tight truncate max-w-[200px]">{venue.contact?.email || "N/A"}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">EMAIL ADDRESS</p>
+                      <p className="text-base font-bold tracking-tight truncate max-w-[200px]">{venue.contact?.email || "N/A"}</p>
                     </div>
                   </div>
                 </div>
@@ -307,16 +307,16 @@ const VenueDetails = () => {
             <div className="bg-white p-12 rounded-[50px] shadow-premium border border-gray-100 space-y-10">
               <div className="flex items-center gap-4">
                 <FiShield className="text-primary text-3xl" />
-                <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Security <span className="text-primary">Protocol</span></h3>
+                <h3 className="text-2xl font-extrabold text-gray-900 uppercase leading-none">Venue <span className="text-primary">Policies</span></h3>
               </div>
               <div className="space-y-6">
                 <div className="p-8 rounded-[32px] bg-gray-50 border border-gray-100 group hover:border-primary/20 transition-all duration-500">
-                  <p className="text-[9px] text-primary font-black uppercase tracking-[0.3em] mb-2 italic">CANCELLATION POLICY</p>
-                  <p className="text-sm text-gray-500 font-medium italic leading-relaxed">{venue.policies?.cancellation || "No specific cancellation protocols identified for this sector."}</p>
+                  <p className="text-xs text-primary font-bold uppercase tracking-wider mb-2">CANCELLATION POLICY</p>
+                  <p className="text-sm text-gray-500 font-medium leading-relaxed">{venue.policies?.cancellation || "No specific cancellation policy specified."}</p>
                 </div>
                 <div className="p-8 rounded-[32px] bg-gray-50 border border-gray-100 group hover:border-primary/20 transition-all duration-500">
-                  <p className="text-[9px] text-primary font-black uppercase tracking-[0.3em] mb-2 italic">ADVANCE OPERATIONAL WINDOW</p>
-                  <p className="text-sm text-gray-500 font-medium italic leading-relaxed">System synchronized for up to {venue.policies?.advance_booking_days || 7} cycles in advance.</p>
+                  <p className="text-xs text-primary font-bold uppercase tracking-wider mb-2">ADVANCE BOOKING WINDOW</p>
+                  <p className="text-sm text-gray-500 font-medium leading-relaxed">Bookings allowed up to {venue.policies?.advance_booking_days || 7} days in advance.</p>
                 </div>
               </div>
             </div>
@@ -325,18 +325,18 @@ const VenueDetails = () => {
             <div className="bg-white p-12 rounded-[50px] shadow-premium border border-gray-100 space-y-10">
               <div className="flex items-center gap-4">
                 <FiActivity className="text-primary text-3xl" />
-                <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Global <span className="text-primary">Telemetry</span></h3>
+                <h3 className="text-2xl font-extrabold text-gray-900 uppercase leading-none">Venue <span className="text-primary">Activity</span></h3>
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="p-8 rounded-[32px] bg-gray-50 text-center space-y-2 group hover:scale-105 transition-all duration-500 shadow-inner">
                   <FiUsers className="mx-auto text-primary text-2xl group-hover:scale-110 transition-transform" />
-                  <p className="text-3xl font-black text-gray-900 italic tracking-tighter leading-none">{venue.stats?.totalBookings || 0}</p>
-                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest italic">VISITS</p>
+                  <p className="text-2xl font-extrabold text-gray-900 leading-none">{venue.stats?.totalBookings || 0}</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">BOOKINGS</p>
                 </div>
                 <div className="p-8 rounded-[32px] bg-gray-50 text-center space-y-2 group hover:scale-105 transition-all duration-500 shadow-inner">
                   <FiStar className="mx-auto text-primary text-2xl group-hover:scale-110 transition-transform" />
-                  <p className="text-3xl font-black text-gray-900 italic tracking-tighter leading-none">{venue.stats?.repeatCustomers || 0}</p>
-                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest italic">ELITE FANS</p>
+                  <p className="text-2xl font-extrabold text-gray-900 leading-none">{venue.stats?.repeatCustomers || 0}</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">REPEAT CUSTOMERS</p>
                 </div>
               </div>
             </div>
@@ -349,11 +349,11 @@ const VenueDetails = () => {
             <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
               <div className="space-y-4">
                 <div className="w-16 h-1 bg-primary rounded-full shadow-lg shadow-primary/20 mb-8" />
-                <h3 className="text-5xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Combat <span className="text-primary">Testimonials</span></h3>
-                <p className="text-xl text-gray-400 font-medium italic max-w-2xl leading-relaxed">Direct synchronization from athletes operating within this arena sector.</p>
+                <h3 className="text-4xl font-extrabold text-gray-900 uppercase leading-none">User <span className="text-primary">Reviews</span></h3>
+                <p className="text-xl text-gray-400 font-medium max-w-2xl leading-relaxed">See what other sports players are saying about this facility.</p>
               </div>
-              <div className="bg-gray-900 text-white px-10 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.4em] italic shadow-2xl flex items-center gap-3">
-                <FiCheckCircle className="text-primary" /> {venue.recentReviews.length} VERIFIED SIGNALS
+              <div className="bg-gray-900 text-white px-10 py-5 rounded-[24px] font-bold text-xs uppercase tracking-wider shadow-2xl flex items-center gap-3">
+                <FiCheckCircle className="text-primary" /> {venue.recentReviews.length} VERIFIED REVIEWS
               </div>
             </header>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
@@ -365,8 +365,8 @@ const VenueDetails = () => {
                         <img className="w-full h-full object-cover" src={`https://ui-avatars.com/api/?name=${review.user?.name}&background=714B67&color=fff&bold=true&size=128`} alt="" />
                       </div>
                       <div className="space-y-1">
-                        <h4 className="text-sm font-black text-gray-900 uppercase italic tracking-tight">{review.user?.name || 'ANONYMOUS OPERATIVE'}</h4>
-                        <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest italic">{new Date(review.createdAt).toLocaleDateString()}</p>
+                        <h4 className="text-sm font-bold text-gray-900 uppercase tracking-tight">{review.user?.name || 'ANONYMOUS USER'}</h4>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{new Date(review.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="flex text-primary text-xs gap-0.5">
@@ -375,7 +375,7 @@ const VenueDetails = () => {
                       ))}
                     </div>
                   </div>
-                  <p className="text-lg text-gray-500 font-medium italic leading-relaxed">"{review.comment}"</p>
+                  <p className="text-lg text-gray-500 font-medium leading-relaxed">"{review.comment}"</p>
                 </div>
               ))}
             </div>

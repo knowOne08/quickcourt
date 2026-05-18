@@ -27,20 +27,20 @@ const VenueCard = ({ venue }) => {
 
   const toggleFavorite = async (e) => {
     e.stopPropagation(); 
-    if (!isAuthenticated) { toast.error('Authentication required for matrix storage'); navigate('/login'); return; }
+    if (!isAuthenticated) { toast.error('Please login to add to favorites'); navigate('/login'); return; }
 
     try {
       setLoading(true);
       if (isFavorite) {
         await userService.removeFavorite(venue._id);
         setIsFavorite(false);
-        toast.success('Removed from personal matrix');
+        toast.success('Removed from favorites');
       } else {
         await userService.addFavorite(venue._id);
         setIsFavorite(true);
-        toast.success('Stored in personal matrix!');
+        toast.success('Added to favorites!');
       }
-    } catch (err) { toast.error('Synchronization failure'); }
+    } catch (err) { toast.error('Failed to update favorites'); }
     finally { setLoading(false); }
   };
 
@@ -83,30 +83,30 @@ const VenueCard = ({ venue }) => {
           <div className="flex items-center gap-2">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-2xl">
               <FiStar className="text-primary fill-primary" size={14} />
-              <span className="text-[10px] font-black text-white italic">{venue.rating?.average || '0.0'} INTEGRITY</span>
+              <span className="text-xs font-bold text-white">{venue.rating?.average || '0.0'} RATING</span>
             </div>
           </div>
-          <span className="bg-primary text-white px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] italic w-fit shadow-2xl">
-            {venue.sports?.[0]?.replace('_', ' ') || 'MULTI-SECTOR'} UNIT
+          <span className="bg-primary text-white px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit shadow-2xl">
+            {venue.sports?.[0]?.replace('_', ' ') || 'SPORTS'}
           </span>
         </div>
       </div>
       
       <div className="p-10 space-y-6">
         <div className="space-y-3">
-          <h3 className="text-3xl font-black text-gray-900 leading-none tracking-tighter uppercase italic group-hover:text-primary transition-colors duration-500">{venue.name}</h3>
-          <p className="text-[10px] text-gray-400 font-black flex items-center gap-2 uppercase tracking-[0.2em] italic">
+          <h3 className="text-2xl font-extrabold text-gray-900 group-hover:text-primary transition-colors duration-300">{venue.name}</h3>
+          <p className="text-sm text-gray-500 font-semibold flex items-center gap-2">
             <FiMapPin size={14} className="text-primary" /> 
-            {[venue.location?.city, venue.location?.state].filter(Boolean).join(', ') || 'REMOTE COORDINATES'}
+            {[venue.location?.city, venue.location?.state].filter(Boolean).join(', ') || 'Unknown Location'}
           </p>
         </div>
 
         <div className="flex items-center justify-between pt-8 border-t border-gray-50">
           <div className="flex flex-col">
-            <span className="text-[9px] text-gray-300 font-black uppercase tracking-[0.3em] italic mb-1">OPERATIONAL RATE</span>
+            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Price</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-gray-900 italic tracking-tighter">{formatPrice()}</span>
-              <span className="text-[10px] font-black text-gray-400 uppercase italic">/HR</span>
+              <span className="text-2xl font-extrabold text-gray-900">{formatPrice()}</span>
+              <span className="text-xs font-bold text-gray-500">/hr</span>
             </div>
           </div>
           
