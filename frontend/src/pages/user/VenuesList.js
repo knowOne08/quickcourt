@@ -1,7 +1,10 @@
+// frontend/src/pages/user/VenuesList.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVenues } from '../../hooks/useVenues';
-import './VenuesList.css';
+import SearchWithSuggestions from '../../components/common/SearchWithSuggestions';
+import VenueCard from '../../components/venue/VenueCard';
+import { FiFilter, FiSearch, FiXCircle, FiGrid, FiActivity, FiShield, FiTrendingUp, FiBox, FiAlertCircle, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 const VenuesList = () => {
   const navigate = useNavigate();
@@ -20,6 +23,7 @@ const VenuesList = () => {
     pagination,
     fetchVenues,
     searchVenues,
+    getSearchSuggestions,
     updateFilters,
     clearFilters
   } = useVenues(filters);
@@ -31,10 +35,16 @@ const VenuesList = () => {
   };
 
   const handleSearch = () => {
-    if (filters.search.trim()) {
-      searchVenues(filters);
-    } else {
-      fetchVenues(filters);
+    searchVenues(filters);
+  };
+
+  const handleSuggestionSelect = (suggestion) => {
+    if (suggestion.type === 'venue') {
+      navigate(`/venue/${suggestion.id}`);
+    } else if (suggestion.type === 'location') {
+      const updatedFilters = { ...filters, search: suggestion.value || suggestion.text };
+      setFilters(updatedFilters);
+      searchVenues(updatedFilters);
     }
   };
 
@@ -44,223 +54,189 @@ const VenuesList = () => {
     }
   };
 
-  const formatLocation = (location) => {
-    if (!location) return '';
-    const parts = [location.address, location.city, location.state].filter(Boolean);
-    return parts.join(', ');
-  };
-
-  const formatPrice = (venue) => {
-    if (venue.pricing?.hourly) {
-      return `₹${venue.pricing.hourly}/hour`;
-    }
-    if (venue.priceRange) {
-      return `₹${venue.priceRange.min}-${venue.priceRange.max}/hour`;
-    }
-    return 'Price not available';
-  };
-
-  const getVenueImage = (venue) => {
-    if (venue.images && venue.images.length > 0) {
-      return venue.images[0].url || venue.images[0];
-    }
-    // Fallback images based on sport
-    const fallbackImages = {
-      badminton: 'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=300&h=200&fit=crop',
-      football: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=300&h=200&fit=crop',
-      cricket: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop',
-      tennis: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=300&h=200&fit=crop',
-      basketball: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=300&h=200&fit=crop',
-      table_tennis: 'https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=300&h=200&fit=crop'
-    };
-    return fallbackImages[venue.sports?.[0]] || 'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=300&h=200&fit=crop';
-  };
-
-  const getSportIcon = (sport) => {
-    const icons = {
-      badminton: '🏸',
-      football: '⚽',
-      cricket: '🏏',
-      tennis: '🎾',
-      basketball: '🏀',
-      table_tennis: '🏓',
-      volleyball: '🏐'
-    };
-    return icons[sport] || '🏟️';
-  };
-
   return (
-    <div className="venues-list-layout">
-      {/* Sidebar */}
-      <aside className="venues-sidebar">
-        <div className="sidebar-section">
-          <label htmlFor="search-venue">Search by venue name</label>
-          <input
-            id="search-venue"
-            type="text"
-            placeholder="Search for venue"
-            value={filters.search}
-            onChange={(e) => handleFilterChange({ search: e.target.value })}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-          />
-          <button onClick={handleSearch} className="search-btn">Search</button>
-        </div>
-        
-        <div className="sidebar-section">
-          <label>Filter by sport type</label>
-          <select
-            value={filters.sport}
-            onChange={(e) => handleFilterChange({ sport: e.target.value })}
-          >
-            <option value="">All sports</option>
-            <option value="badminton">Badminton</option>
-            <option value="football">Football</option>
-            <option value="cricket">Cricket</option>
-            <option value="tennis">Tennis</option>
-            <option value="basketball">Basketball</option>
-            <option value="table_tennis">Table Tennis</option>
-            <option value="volleyball">Volleyball</option>
-          </select>
-        </div>
-        
-        <div className="sidebar-section">
-          <label>Price range (per hour)</label>
-          <div className="price-inputs">
-            <input
-              type="number"
-              placeholder="Min"
-              value={filters.minPrice}
-              onChange={(e) => handleFilterChange({ minPrice: parseInt(e.target.value) || 0 })}
-            />
-            <span>-</span>
-            <input
-              type="number"
-              placeholder="Max"
-              value={filters.maxPrice}
-              onChange={(e) => handleFilterChange({ maxPrice: parseInt(e.target.value) || 5000 })}
-            />
-          </div>
-        </div>
-        
-        <div className="sidebar-section">
-          <label>Minimum Rating</label>
-          <select
-            value={filters.rating}
-            onChange={(e) => handleFilterChange({ rating: parseInt(e.target.value) })}
-          >
-            <option value="0">All ratings</option>
-            <option value="5">5 stars & up</option>
-            <option value="4">4 stars & up</option>
-            <option value="3">3 stars & up</option>
-            <option value="2">2 stars & up</option>
-            <option value="1">1 star & up</option>
-          </select>
-        </div>
-        
-        <button
-          className="clear-filters-btn"
-          onClick={clearFilters}
-        >
-          Clear Filters
-        </button>
-      </aside>
+    <div className="min-h-screen bg-white font-inter">
+      <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row p-6 md:p-12 gap-12">
+        {/* Sidebar Filters */}
+        <aside className="w-full lg:w-96 shrink-0 space-y-12">
+          <div className="bg-gray-900 rounded-[50px] p-12 space-y-12 shadow-2xl relative overflow-hidden group sticky top-12">
+            <div className="absolute top-0 right-0 w-full h-full bg-primary opacity-[0.05] -skew-x-12 translate-x-1/2" />
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-primary shadow-2xl border border-white/5">
+                <FiFilter size={24} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase">Filter Matrix</h3>
+                <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] italic">Operational Tuning</p>
+              </div>
+            </div>
 
-      {/* Main Content */}
-      <main className="venues-main">
-        <h2 className="venues-title">
-          Sports Venues: Discover and Book Nearby Venues
-        </h2>
-        
-        {loading && (
-          <div className="loading-state">
-            <div>Loading venues...</div>
-          </div>
-        )}
-
-        {error && (
-          <div className="error-state">
-            <div>{error}</div>
-            <button onClick={() => fetchVenues(filters)} className="retry-btn">Retry</button>
-          </div>
-        )}
-
-        <div className="venues-grid">
-          {(!loading && !error && venues.length > 0) ? (
-            venues.map((venue) => (
-              <div key={venue._id} className="venue-card-outline">
-                <div className="venue-image-placeholder">
-                  <img src={getVenueImage(venue)} alt={venue.name} />
-                </div>
-                <div className="venue-info-outline">
-                  <div className="venue-header-row">
-                    <span className="venue-name">{venue.name}</span>
-                    <span className="venue-rating-outline">
-                      ⭐ {venue.rating?.average || venue.averageRating || 'N/A'}
-                      <span className="venue-reviews">({venue.rating?.count || venue.totalReviews || 0})</span>
-                    </span>
-                  </div>
-                  <div className="venue-location-outline">
-                    📍 {formatLocation(venue.location)}
-                  </div>
-                  <div className="venue-price-outline">
-                    {formatPrice(venue)}
-                  </div>
-                  <div className="venue-amenities-outline">
-                    {venue.sports && venue.sports.map((sport, idx) => (
-                      <span key={idx} className="venue-tag-outline">
-                        {getSportIcon(sport)} {sport}
-                      </span>
-                    ))}
-                    {venue.amenities && venue.amenities.slice(0, 2).map((amenity, idx) => (
-                      <span key={`amenity-${idx}`} className="venue-tag-outline">{amenity}</span>
-                    ))}
-                  </div>
-                  <button
-                    className="view-details-btn-outline"
-                    onClick={() => navigate(`/venue/${venue._id}`)}
-                  >
-                    View Details
-                  </button>
+            <div className="relative z-10 space-y-10">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block px-1 italic flex items-center gap-2"><FiSearch className="text-primary" /> LOCATION / IDENTITY</label>
+                <div className="relative group/search">
+                  <SearchWithSuggestions
+                    value={filters.search}
+                    onChange={(value) => handleFilterChange({ search: value })}
+                    onSearch={handleSearch}
+                    onSuggestionSelect={handleSuggestionSelect}
+                    getSuggestions={getSearchSuggestions}
+                    placeholder="SEARCH COORDINATES..."
+                    className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-2 text-sm font-black text-white focus-within:border-primary transition-all duration-500 italic uppercase"
+                  />
                 </div>
               </div>
-            ))
-          ) : !loading && !error ? (
-            <div className="no-venues-message">
-              <p>No venues found matching your criteria.</p>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block px-1 italic flex items-center gap-2"><FiActivity className="text-primary" /> SPORTING SECTOR</label>
+                <select
+                  value={filters.sport}
+                  onChange={(e) => handleFilterChange({ sport: e.target.value })}
+                  className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-white focus:border-primary transition-all duration-500 outline-none italic uppercase appearance-none"
+                >
+                  <option value="" className="bg-gray-900">ALL DISCIPLINES</option>
+                  {['badminton', 'football', 'cricket', 'tennis', 'basketball', 'table_tennis', 'volleyball'].map(sport => (
+                    <option key={sport} value={sport} className="bg-gray-900">{sport.replace('_', ' ')}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block px-1 italic flex items-center gap-2"><FiTrendingUp className="text-primary" /> BUDGET PARAMETERS (₹/HR)</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="number"
+                    placeholder="MIN"
+                    value={filters.minPrice}
+                    onChange={(e) => handleFilterChange({ minPrice: parseInt(e.target.value) || 0 })}
+                    className="bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-white focus:border-primary transition-all duration-500 outline-none italic uppercase"
+                  />
+                  <input
+                    type="number"
+                    placeholder="MAX"
+                    value={filters.maxPrice}
+                    onChange={(e) => handleFilterChange({ maxPrice: parseInt(e.target.value) || 5000 })}
+                    className="bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-white focus:border-primary transition-all duration-500 outline-none italic uppercase"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block px-1 italic flex items-center gap-2"><FiShield className="text-primary" /> INTEGRITY RANKING</label>
+                <select
+                  value={filters.rating}
+                  onChange={(e) => handleFilterChange({ rating: parseInt(e.target.value) })}
+                  className="w-full bg-white/5 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-white focus:border-primary transition-all duration-500 outline-none italic uppercase appearance-none"
+                >
+                  <option value="0" className="bg-gray-900">ANY INTEGRITY</option>
+                  <option value="5" className="bg-gray-900">ELITE (5★)</option>
+                  <option value="4" className="bg-gray-900">HIGH CLASS (4★+)</option>
+                  <option value="3" className="bg-gray-900">RELIABLE (3★+)</option>
+                  <option value="2" className="bg-gray-900">VALUE (2★+)</option>
+                </select>
+              </div>
+
               <button
+                className="w-full py-6 rounded-[24px] font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 border-2 border-dashed border-white/10 hover:border-primary hover:text-primary transition-all duration-500 flex items-center justify-center gap-3 italic"
                 onClick={clearFilters}
-                className="clear-filters-btn"
               >
-                Clear Filters
+                <FiXCircle /> RESET PARAMETERS
               </button>
             </div>
-          ) : null}
-        </div>
-        
-        {!loading && !error && venues.length > 0 && pagination.totalPages > 1 && (
-          <div className="pagination">
-            <button
-              onClick={() => handlePageChange(pagination.currentPage - 1)}
-              disabled={pagination.currentPage === 1}
-              className="page-btn"
-            >
-              Previous
-            </button>
-            <span className="page-info">
-              Page {pagination.currentPage} of {pagination.totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(pagination.currentPage + 1)}
-              disabled={pagination.currentPage === pagination.totalPages}
-              className="page-btn"
-            >
-              Next
-            </button>
           </div>
-        )}
-      </main>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 space-y-16">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-12">
+            <div className="space-y-4">
+              <div className="w-16 h-1 bg-primary rounded-full mb-8 shadow-lg shadow-primary/20" />
+              <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter uppercase italic leading-none">Global <span className="text-primary">Facilities</span></h2>
+              <p className="text-xl text-gray-400 font-medium italic max-w-2xl leading-relaxed">Discover and synchronize with high-performance sports infrastructure across the matrix.</p>
+            </div>
+            <div className="flex items-center gap-4 bg-gray-50 px-8 py-5 rounded-[24px] border border-gray-100 shadow-premium shrink-0 group">
+              <FiGrid className="text-primary text-xl group-hover:scale-110 transition-transform" />
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest italic">REGISTRY SCAN</span>
+                <span className="text-sm font-black text-gray-900 uppercase italic">
+                  {venues.length} UNITS DETECTED
+                </span>
+              </div>
+            </div>
+          </header>
+
+          <div className="animate-fade-in min-h-[600px]">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="bg-gray-50 rounded-[50px] aspect-[4/5] animate-pulse border border-gray-100"></div>
+                ))}
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-48 bg-red-50 rounded-[60px] border-2 border-dashed border-red-100 space-y-8">
+                <div className="w-32 h-32 bg-white rounded-[40px] flex items-center justify-center text-red-500 shadow-premium">
+                  <FiAlertCircle size={60} />
+                </div>
+                <div className="text-center space-y-3">
+                  <h3 className="text-4xl font-black text-red-900 uppercase italic tracking-tighter leading-none">Signal Failure</h3>
+                  <p className="text-xl text-red-600 font-medium italic max-w-md mx-auto leading-relaxed">{error}</p>
+                </div>
+                <button onClick={() => fetchVenues(filters)} className="bg-red-500 text-white px-16 py-6 rounded-[30px] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:scale-110 transition-all duration-500 italic">
+                  RETRY CONNECTION
+                </button>
+              </div>
+            ) : venues.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-12">
+                {venues.map((venue) => (
+                  <div key={venue._id} className="animate-fade-in" style={{ animationDelay: `${venues.indexOf(venue) * 100}ms` }}>
+                    <VenueCard venue={venue} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-48 bg-gray-50 rounded-[60px] border-2 border-dashed border-gray-200 text-center space-y-8">
+                <div className="w-32 h-32 bg-white rounded-[40px] flex items-center justify-center text-primary text-6xl mx-auto shadow-premium">
+                  <FiBox />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-4xl font-black text-gray-800 uppercase italic tracking-tighter">Sector Clear</h3>
+                  <p className="text-xl text-gray-400 font-medium italic max-w-lg mx-auto leading-relaxed">No high-grade venues identified with current parameters. Adjust your tuning.</p>
+                </div>
+                <button onClick={clearFilters} className="bg-primary text-white px-16 py-6 rounded-[30px] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:scale-110 transition-all duration-500 italic">
+                  RESET MATRIX TUNING
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {!loading && !error && venues.length > 0 && pagination.totalPages > 1 && (
+            <div className="flex justify-center items-center gap-8 pt-20">
+              <button
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
+                className="w-20 h-20 bg-white border border-gray-100 rounded-[30px] flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white hover:scale-110 transition-all duration-500 shadow-premium disabled:opacity-20 disabled:hover:scale-100"
+              >
+                <FiChevronLeft size={32} />
+              </button>
+              <div className="bg-gray-900 px-12 py-6 rounded-[30px] font-black text-white text-lg italic shadow-2xl border border-white/5 uppercase tracking-widest">
+                <span className="text-primary">{pagination.currentPage}</span> <span className="text-white/20 mx-2">/</span> {pagination.totalPages}
+              </div>
+              <button
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages}
+                className="w-20 h-20 bg-white border border-gray-100 rounded-[30px] flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white hover:scale-110 transition-all duration-500 shadow-premium disabled:opacity-20 disabled:hover:scale-100"
+              >
+                <FiChevronRight size={32} />
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 };
 
 export default VenuesList;
+
+

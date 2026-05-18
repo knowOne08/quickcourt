@@ -3,70 +3,297 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
+const logger = require('../utils/logger');
+const { createNotification } = require('../utils/notificationHelper');
+const { COMMISSION_RATE } = require('../utils/constants');
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
+// Security: Rate limiting for payment creation
+const paymentCreateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 payment requests per windowMs
+  message: {
+    status: 'error',
+    message: 'Too many payment attempts, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
+
+// Security: Rate limiting for payment verification
+const paymentVerifyLimit = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // limit each IP to 10 verify requests per windowMs
+  message: {
+    status: 'error',
+    message: 'Too many verification attempts, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Initialize Razorpay with environment validation
+const initializeRazorpay = () => {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    throw new Error('Razorpay credentials not configured');
+  }
+  
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+};
+
+const razorpay = initializeRazorpay();
+
+// Security: Input validation helpers
+const validateAmount = (amount) => {
+  const numAmount = parseFloat(amount);
+  return numAmount > 0 && numAmount <= 100000 && !isNaN(numAmount);
+};
+
+const validateCurrency = (currency) => {
+  const allowedCurrencies = ['INR', 'USD'];
+  return allowedCurrencies.includes(currency);
+};
+
+const sanitizeReceipt = (receipt) => {
+  return receipt.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 40);
+};
 
 exports.createPaymentOrder = async (req, res) => {
   try {
-    const { bookingId, amount, currency = 'INR' } = req.body;
-    const userId = req.user.id;
+    let { 
+      bookingId, amount, totalAmount, currency = 'INR', 
+      venue, court, date, startTime, endTime, duration, 
+      venueName, courtName, playerMode, matchMode, teamSize, paymentMethod 
+    } = req.body;
+    const userId = req.user._id || req.user.id;
 
-    const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      return res.status(404).json({
+    // Security: Input validation
+    if (!validateAmount(amount)) {
+      return res.status(400).json({
         status: 'error',
-        message: 'Booking not found'
+        message: 'Invalid amount. Amount must be between 1 and 100000.'
       });
     }
 
-    if (booking.user.toString() !== userId) {
-      return res.status(403).json({
+    if (!validateCurrency(currency)) {
+      return res.status(400).json({
         status: 'error',
-        message: 'Not authorized'
+        message: 'Invalid currency. Only INR and USD are supported.'
       });
     }
 
+    // Check if it's a temporary booking ID (new booking flow)
+    const isTemporaryBooking = bookingId.startsWith('booking_');
+    let booking = null;
+
+    if (isTemporaryBooking) {
+      // For temporary bookings, validate that we have all required booking data
+      if (!venue || !court || !date || !startTime || !endTime || !duration) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Missing booking details for new booking'
+        });
+      }
+
+      // Calculate revenue split
+      const adminRevenue = amount * COMMISSION_RATE;
+      const ownerRevenue = amount - adminRevenue;
+
+      // Create the booking first
+      booking = new Booking({
+        user: userId,
+        venue,
+        court,
+        date: new Date(new Date(date).toISOString().split('T')[0] + 'T00:00:00.000Z'),
+        startTime,
+        endTime,
+        duration,
+        totalAmount: amount,
+        ownerRevenue,
+        adminRevenue,
+        status: 'pending',
+        playerMode: playerMode || 'team',
+        matchMode: matchMode || 'private',
+        teamSize: teamSize || 10
+      });
+
+      await booking.save();
+      
+      // Update bookingId to the real MongoDB ID for payment processing
+      bookingId = booking._id;
+      
+      logger.info(`Created new booking: ${booking._id} for temporary ID: ${req.body.bookingId}`);
+    } else {
+      // Security: Verify booking ownership and status for existing bookings
+      booking = await Booking.findById(bookingId).populate('user');
+      if (!booking) {
+        logger.warn(`Payment attempt for non-existent booking: ${bookingId} by user: ${userId}`);
+        return res.status(404).json({
+          status: 'error',
+          message: 'Booking not found'
+        });
+      }
+
+      if (booking.user._id.toString() !== userId) {
+        logger.warn(`Unauthorized payment attempt for booking: ${bookingId} by user: ${userId}`);
+        return res.status(403).json({
+          status: 'error',
+          message: 'Not authorized to create payment for this booking'
+        });
+      }
+
+      if (booking.status !== 'pending') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Booking is not in pending status'
+        });
+      }
+    }
+
+    // Security: Check for duplicate payments
+    const existingPayment = await Payment.findOne({
+      booking: booking._id,
+      status: { $in: ['pending', 'completed'] }
+    });
+
+    if (existingPayment) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Payment already exists for this booking'
+      });
+    }
+
+    // Security: Verify amount matches booking total
+    const calculatedAmount = booking.totalAmount || amount;
+    if (Math.abs(amount - calculatedAmount) > 0.01) {
+      logger.warn(`Amount mismatch for booking: ${bookingId}. Expected: ${calculatedAmount}, Received: ${amount}`);
+      return res.status(400).json({
+        status: 'error',
+        message: 'Amount does not match booking total'
+      });
+    }
+
+    const receipt = sanitizeReceipt(`booking_${bookingId}_${Date.now()}`);
+    
     const options = {
-      amount: amount * 100, // Amount in paise
+      amount: Math.round(amount * 100), // Amount in paise, rounded to avoid floating point issues
       currency,
-      receipt: `booking_${bookingId}_${Date.now()}`,
-      payment_capture: 1
+      receipt,
+      payment_capture: 1,
+      notes: {
+        bookingId: bookingId.toString(),
+        userId: userId.toString(),
+        timestamp: Date.now().toString()
+      }
     };
 
     const order = await razorpay.orders.create(options);
 
+    // Create payment record with security metadata
     const payment = await Payment.create({
       user: userId,
       booking: bookingId,
       amount,
       currency,
       orderId: order.id,
-      status: 'pending'
+      status: 'pending',
+      metadata: {
+        userAgent: req.get('User-Agent'),
+        ipAddress: req.ip,
+        createdAt: new Date()
+      }
     });
+
+    logger.info(`Payment order created: ${order.id} for booking: ${bookingId} by user: ${userId}`);
 
     res.status(201).json({
       status: 'success',
       data: {
-        order,
-        payment
+        order: {
+          id: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          receipt: order.receipt
+        },
+        payment: {
+          id: payment._id,
+          orderId: payment.orderId,
+          amount: payment.amount,
+          currency: payment.currency
+        },
+        booking: booking
       }
     });
   } catch (error) {
+    logger.error('Payment order creation failed:', error);
     res.status(400).json({
       status: 'error',
-      message: error.message
+      message: 'Failed to create payment order. Please try again.'
     });
   }
 };
 
 exports.verifyPayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { 
+      razorpay_order_id, 
+      razorpay_payment_id, 
+      razorpay_signature,
+      bookingId 
+    } = req.body;
+    const userId = req.user.id;
 
+    // Security: Input validation
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Missing required payment verification parameters'
+      });
+    }
+
+    // Security: Find payment and verify ownership
+    const payment = await Payment.findOne({ 
+      orderId: razorpay_order_id,
+      user: userId 
+    }).populate('booking');
+
+    if (!payment) {
+      logger.warn(`Payment verification failed - payment not found: ${razorpay_order_id} by user: ${userId}`);
+      return res.status(404).json({
+        status: 'error',
+        message: 'Payment record not found'
+      });
+    }
+
+    // Security: Check if payment is already processed
+    if (payment.status === 'completed') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Payment already processed'
+      });
+    }
+
+    // Security: Verify payment within time window (30 minutes)
+    const paymentCreatedAt = new Date(payment.createdAt);
+    const now = new Date();
+    const timeDifference = (now - paymentCreatedAt) / 1000 / 60; // in minutes
+
+    if (timeDifference > 30) {
+      await Payment.findByIdAndUpdate(payment._id, { 
+        status: 'expired',
+        notes: 'Payment verification expired' 
+      });
+      
+      return res.status(400).json({
+        status: 'error',
+        message: 'Payment verification window expired'
+      });
+    }
+
+    // Security: Verify Razorpay signature
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
@@ -74,37 +301,151 @@ exports.verifyPayment = async (req, res) => {
       .digest("hex");
 
     if (razorpay_signature !== expectedSign) {
+      logger.error(`Payment signature verification failed: ${razorpay_order_id} by user: ${userId}`);
+      
+      // Mark payment as failed
+      await Payment.findByIdAndUpdate(payment._id, { 
+        status: 'failed',
+        failureReason: 'Invalid signature',
+        metadata: {
+          ...payment.metadata,
+          verificationAttemptedAt: new Date(),
+          failureDetails: 'Signature mismatch'
+        }
+      });
+
       return res.status(400).json({
         status: 'error',
-        message: 'Invalid payment signature'
+        message: 'Payment verification failed - invalid signature'
       });
     }
 
-    const payment = await Payment.findOne({ orderId: razorpay_order_id });
-    if (!payment) {
-      return res.status(404).json({
+    // Security: Verify payment amount with Razorpay
+    try {
+      const razorpayPayment = await razorpay.payments.fetch(razorpay_payment_id);
+      
+      if (razorpayPayment.amount !== payment.amount * 100) {
+        logger.error(`Payment amount mismatch: Expected ${payment.amount * 100}, Got ${razorpayPayment.amount}`);
+        
+        await Payment.findByIdAndUpdate(payment._id, { 
+          status: 'failed',
+          failureReason: 'Amount mismatch' 
+        });
+
+        return res.status(400).json({
+          status: 'error',
+          message: 'Payment verification failed - amount mismatch'
+        });
+      }
+
+      if (razorpayPayment.status !== 'captured') {
+        await Payment.findByIdAndUpdate(payment._id, { 
+          status: 'failed',
+          failureReason: 'Payment not captured' 
+        });
+
+        return res.status(400).json({
+          status: 'error',
+          message: 'Payment not completed successfully'
+        });
+      }
+    } catch (razorpayError) {
+      logger.error('Failed to verify payment with Razorpay:', razorpayError);
+      return res.status(400).json({
         status: 'error',
-        message: 'Payment not found'
+        message: 'Payment verification failed - unable to confirm with payment gateway'
       });
     }
 
-    payment.paymentId = razorpay_payment_id;
-    payment.signature = razorpay_signature;
-    payment.status = 'completed';
-    payment.paidAt = new Date();
-    await payment.save();
+    // All validations passed - update payment and booking
+    const session = await Payment.startSession();
+    
+    try {
+      await session.withTransaction(async () => {
+        // Update payment
+        await Payment.findByIdAndUpdate(payment._id, {
+          paymentId: razorpay_payment_id,
+          signature: razorpay_signature,
+          status: 'completed',
+          paidAt: new Date(),
+          metadata: {
+            ...payment.metadata,
+            verifiedAt: new Date(),
+            verificationIp: req.ip,
+            verificationUserAgent: req.get('User-Agent')
+          }
+        }, { session });
 
-    // Update booking status
-    await Booking.findByIdAndUpdate(payment.booking, { status: 'confirmed' });
+        // Update booking status
+        const updatedBooking = await Booking.findByIdAndUpdate(payment.booking._id, { 
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          paidAt: new Date()
+        }, { session, new: true }).populate('user court');
 
-    res.status(200).json({
-      status: 'success',
-      data: { payment }
-    });
+        // Create team if matchMode is public/looking
+        if (updatedBooking.matchMode && (updatedBooking.matchMode === 'public' || updatedBooking.matchMode === 'looking')) {
+          const Team = require('../models/Team');
+          const team = await Team.create([{
+            name: `${updatedBooking.user.name}'s ${updatedBooking.court.sport} Team`,
+            sport: updatedBooking.court.sport,
+            captain: updatedBooking.user._id,
+            members: [updatedBooking.user._id],
+            maxPlayers: updatedBooking.teamSize || 10,
+            venue: updatedBooking.venue,
+            booking: updatedBooking._id,
+            date: updatedBooking.date,
+            startTime: updatedBooking.startTime,
+            endTime: updatedBooking.endTime,
+            status: 'open'
+          }], { session });
+          
+          await Booking.findByIdAndUpdate(updatedBooking._id, { 
+            team: team[0]._id 
+          }, { session });
+        }
+
+        // Notify Owner
+        try {
+          const venue = await require('../models/Venue').findById(updatedBooking.venue);
+          await createNotification({
+            recipient: venue.owner,
+            sender: updatedBooking.user._id,
+            type: 'BOOKING_CONFIRMED',
+            title: 'New Online Booking Confirmed',
+            message: `${updatedBooking.user.name} has booked ${updatedBooking.court.name} for ${updatedBooking.startTime} on ${updatedBooking.date.toLocaleDateString()}.`,
+            data: { bookingId: updatedBooking._id, venueId: updatedBooking.venue }
+          });
+        } catch (notifyError) {
+          logger.error('Failed to notify owner after payment:', notifyError);
+        }
+      });
+
+      logger.info(`Payment verified successfully: ${razorpay_payment_id} for booking: ${payment.booking._id}`);
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Payment verified successfully',
+        data: { 
+          paymentId: razorpay_payment_id,
+          bookingId: payment.booking._id,
+          amount: payment.amount,
+          status: 'completed'
+        }
+      });
+
+    } catch (transactionError) {
+      logger.error('Payment verification transaction failed:', transactionError);
+      throw transactionError;
+    } finally {
+      await session.endSession();
+    }
+
   } catch (error) {
+    logger.error('Payment verification error:', error);
     res.status(400).json({
       status: 'error',
-      message: error.message
+      message: 'Payment verification failed. Please contact support.'
     });
   }
 };
@@ -309,7 +650,7 @@ exports.calculateBookingPrice = async (req, res) => {
 
     const hours = duration / 60;
     const basePrice = court.pricePerHour * hours;
-    const platformFee = basePrice * 0.05; // 5% platform fee
+    const platformFee = basePrice * 0.10; // Increased to 10% platform fee
     const tax = basePrice * 0.18; // 18% GST
     const totalAmount = basePrice + platformFee + tax;
 
@@ -320,6 +661,8 @@ exports.calculateBookingPrice = async (req, res) => {
         platformFee,
         tax,
         totalAmount,
+        ownerRevenue: basePrice,
+        adminRevenue: platformFee,
         breakdown: {
           courtPrice: basePrice,
           platformFee,
@@ -527,3 +870,95 @@ exports.getRevenueReport = async (req, res) => {
     });
   }
 };
+
+// Webhook handler for Razorpay events
+exports.handleWebhook = async (req, res) => {
+  try {
+    const webhookBody = req.body;
+    const signature = req.get('X-Razorpay-Signature');
+
+    logger.info('Webhook received:', {
+      event: webhookBody.event,
+      paymentId: webhookBody.payload?.payment?.entity?.id,
+      signature: signature ? 'present' : 'missing'
+    });
+
+    // Process different webhook events
+    switch (webhookBody.event) {
+      case 'payment.captured':
+        await handlePaymentCaptured(webhookBody.payload.payment.entity);
+        break;
+      
+      case 'payment.failed':
+        await handlePaymentFailed(webhookBody.payload.payment.entity);
+        break;
+      
+      case 'refund.processed':
+        await handleRefundProcessed(webhookBody.payload.refund.entity);
+        break;
+      
+      default:
+        logger.info(`Unhandled webhook event: ${webhookBody.event}`);
+    }
+
+    res.status(200).json({ status: 'ok' });
+  } catch (error) {
+    logger.error('Webhook processing error:', error);
+    res.status(400).json({
+      status: 'error',
+      message: 'Webhook processing failed'
+    });
+  }
+};
+
+// Helper functions for webhook processing
+const handlePaymentCaptured = async (paymentEntity) => {
+  try {
+    await Payment.findOneAndUpdate(
+      { razorpayPaymentId: paymentEntity.id },
+      { 
+        status: 'completed',
+        razorpaySignature: paymentEntity.id,
+        completedAt: new Date()
+      }
+    );
+    logger.info(`Payment captured: ${paymentEntity.id}`);
+  } catch (error) {
+    logger.error('Error handling payment captured:', error);
+  }
+};
+
+const handlePaymentFailed = async (paymentEntity) => {
+  try {
+    await Payment.findOneAndUpdate(
+      { razorpayPaymentId: paymentEntity.id },
+      { 
+        status: 'failed',
+        failureReason: paymentEntity.error_description
+      }
+    );
+    logger.info(`Payment failed: ${paymentEntity.id}`);
+  } catch (error) {
+    logger.error('Error handling payment failed:', error);
+  }
+};
+
+const handleRefundProcessed = async (refundEntity) => {
+  try {
+    await Payment.findOneAndUpdate(
+      { razorpayPaymentId: refundEntity.payment_id },
+      { 
+        status: 'refunded',
+        refundAmount: refundEntity.amount / 100,
+        refundId: refundEntity.id
+      }
+    );
+    logger.info(`Refund processed: ${refundEntity.id}`);
+  } catch (error) {
+    logger.error('Error handling refund processed:', error);
+  }
+};
+
+// Export rate limiting middleware for use in routes
+exports.paymentCreateLimit = paymentCreateLimit;
+exports.paymentVerifyLimit = paymentVerifyLimit;

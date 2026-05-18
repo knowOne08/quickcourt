@@ -1,554 +1,270 @@
 // frontend/src/pages/user/Profile.js
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useBooking } from '../../context/BookingContext';
 import { userService } from '../../services/userService';
-import './Profile.css';
+import {
+  FiUser, FiMail, FiPhone, FiLock,
+  FiHeart, FiSettings, FiLogOut, FiCamera,
+  FiChevronRight, FiCreditCard, FiBell, FiShield, FiSliders, FiActivity, FiCalendar
+} from 'react-icons/fi';
+import { toast } from 'react-hot-toast';
 
 const Profile = () => {
   const { user, loadUser, logout } = useAuth();
-  const { userBookings, loading, loadUserBookings, cancelBooking } = useBooking();
   const navigate = useNavigate();
-
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'bookings' | 'edit' | 'favorites' | 'reviews' | 'preferences'
-  const [stats, setStats] = useState(null);
-  const [favorites, setFavorites] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [preferences, setPreferences] = useState(null);
-  const [loadingStats, setLoadingStats] = useState(false);
-  const [loadingFavorites, setLoadingFavorites] = useState(false);
-  const [loadingReviews, setLoadingReviews] = useState(false);
-
-  // Edit form state
-  const [fullName, setFullName] = useState(user?.fullName || user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('profile');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState({ fullName: '', email: '', oldPassword: '', newPassword: '' });
 
-  const nameRef = useRef(null);
-  const emailRef = useRef(null);
-  const phoneRef = useRef(null);
-  const oldPassRef = useRef(null);
-  const newPassRef = useRef(null);
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phoneNumber: user?.phoneNumber || '',
+    oldPassword: '',
+    newPassword: ''
+  });
+
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    totalReviews: 0,
+    favoriteVenuesCount: 0
+  });
 
   useEffect(() => {
-    // Keep form in sync when user loads/changes
-    setFullName(user?.fullName || user?.name || '');
-    setEmail(user?.email || '');
-    setPhoneNumber(user?.phoneNumber || '');
-  }, [user]);
-
-  // Load data based on active tab
-  useEffect(() => {
-    if (activeTab === 'bookings') {
-      loadUserBookings();
-    } else if (activeTab === 'overview') {
-      loadUserStats();
-      loadFavorites();
-      loadReviews();
-    } else if (activeTab === 'favorites') {
-      loadFavorites();
-    } else if (activeTab === 'reviews') {
-      loadReviews();
-    } else if (activeTab === 'preferences') {
-      loadPreferences();
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber || ''
+      }));
+      fetchStats();
     }
-  }, [activeTab, loadUserBookings]);
+  }, [user, activeTab]);
 
-  const loadUserStats = async () => {
+  const fetchStats = async () => {
     try {
-      setLoadingStats(true);
       const response = await userService.getUserStats();
-      if (response.data?.success) {
-        setStats(response.data.stats);
-      }
-    } catch (error) {
-      console.error('Failed to load user stats:', error);
-    } finally {
-      setLoadingStats(false);
-    }
+      if (response.data?.success) setStats(response.data.stats);
+    } catch (error) { console.error('Stats synchronization failure'); }
   };
 
-  const loadFavorites = async () => {
-    try {
-      setLoadingFavorites(true);
-      const response = await userService.getFavoriteVenues();
-      if (response.data?.success) {
-        setFavorites(response.data.favorites);
-      }
-    } catch (error) {
-      console.error('Failed to load favorites:', error);
-    } finally {
-      setLoadingFavorites(false);
-    }
-  };
+  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const loadReviews = async () => {
-    try {
-      setLoadingReviews(true);
-      const response = await userService.getUserReviews();
-      if (response.data?.success) {
-        setReviews(response.data.reviews);
-      }
-    } catch (error) {
-      console.error('Failed to load reviews:', error);
-    } finally {
-      setLoadingReviews(false);
-    }
-  };
-
-  const loadPreferences = async () => {
-    try {
-      const response = await userService.getUserPreferences();
-      if (response.data?.success) {
-        setPreferences(response.data.preferences);
-      }
-    } catch (error) {
-      console.error('Failed to load preferences:', error);
-    }
-  };
-
-  const removeFavorite = async (venueId) => {
-    try {
-      await userService.removeFavoriteVenue(venueId);
-      setFavorites(prev => prev.filter(venue => venue._id !== venueId));
-    } catch (error) {
-      console.error('Failed to remove favorite:', error);
-    }
-  };
-
-  const isEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-
-  const validate = () => {
-    const next = { fullName: '', email: '', oldPassword: '', newPassword: '' };
-    if (!fullName.trim()) next.fullName = 'Full name is required';
-    else if (fullName.trim().length < 2) next.fullName = 'Full name must be at least 2 characters';
-
-    if (!email.trim()) next.email = 'Email is required';
-    else if (!isEmail(email.trim())) next.email = 'Enter a valid email address';
-
-    if (oldPassword || newPassword) {
-      if (!oldPassword) next.oldPassword = 'Old password is required';
-      else if (oldPassword.length < 6) next.oldPassword = 'Old password must be at least 6 characters';
-      if (!newPassword) next.newPassword = 'New password is required';
-      else if (newPassword.length < 8) next.newPassword = 'New password must be at least 8 characters';
-      else if (newPassword === oldPassword) next.newPassword = 'New password must be different from old password';
-    }
-
-    setErrors(next);
-    return !next.fullName && !next.email && !next.oldPassword && !next.newPassword;
-  };
-
-  const upcomingAndCancelled = useMemo(() => {
-    const now = new Date();
-    const isPast = (b) => new Date(b.date) < new Date(now.toDateString());
-    const upcoming = [];
-    const cancelled = [];
-    for (const b of userBookings) {
-      if (b.status === 'cancelled') cancelled.push(b);
-      else upcoming.push(b);
-    }
-    return { upcoming, cancelled, isPast };
-  }, [userBookings]);
-
-  const handleProfileSave = async () => {
-    if (!validate()) {
-      // Focus first error field
-      if (errors.fullName) nameRef.current?.focus();
-      else if (errors.email) emailRef.current?.focus();
-      else if (errors.oldPassword) oldPassRef.current?.focus();
-      else if (errors.newPassword) newPassRef.current?.focus();
-      return;
-    }
+  const handleSave = async (e) => {
+    e.preventDefault();
     try {
       setSaving(true);
-      await userService.updateProfile({ name: fullName, phoneNumber });
-      
-      let passwordChanged = false;
-      if (oldPassword && newPassword) {
-        await userService.changePassword(oldPassword, newPassword);
-        passwordChanged = true;
+      await userService.updateProfile({ name: formData.name, phoneNumber: formData.phoneNumber });
+
+      if (formData.oldPassword && formData.newPassword) {
+        await userService.changePassword(formData.oldPassword, formData.newPassword);
+        toast.success('Security Key Updated. Re-authentication required.');
+        logout(); navigate('/login'); return;
       }
-      
-      if (passwordChanged) {
-        // If password was changed, log out the user and redirect to login
-        alert('Password changed successfully! Please log in again with your new password.');
-        logout();
-        navigate('/login');
-        return;
-      }
-      
+
       await loadUser();
-      setOldPassword('');
-      setNewPassword('');
-      alert('Profile updated successfully!');
-    } catch (e) {
-      alert(e.response?.data?.error || 'Failed to update profile');
-    } finally {
-      setSaving(false);
-    }
+      toast.success('Identity synchronized successfully!');
+    } catch (error) { toast.error(error.response?.data?.message || 'Synchronization aborted.'); }
+    finally { setSaving(false); }
   };
 
-  const canCancel = (booking) => {
-    const bookingDate = new Date(booking.date);
-    const today = new Date();
-    return booking.status === 'confirmed' && bookingDate >= new Date(today.toDateString());
-  };
-
-  const formatLocation = (venue) => {
-    if (!venue) return '';
-    const parts = [venue.address, venue.city].filter(Boolean);
-    return parts.join(', ');
-  };
-
-  const formatPrice = (venue) => {
-    if (venue.pricing?.hourly) {
-      return `₹${venue.pricing.hourly}/hour`;
-    }
-    if (venue.pricePerHour) {
-      return `₹${venue.pricePerHour}/hour`;
-    }
-    return 'Price not available';
-  };
-
-  const getVenueImage = (venue) => {
-    if (venue.images && venue.images.length > 0) {
-      return venue.images[0].url || venue.images[0];
-    }
-    return 'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=300&h=200&fit=crop';
-  };
-
-  const renderOverview = () => (
-    <div className="overview-section">
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-number">{stats?.totalBookings || 0}</div>
-          <div className="stat-label">Total Bookings</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number">{stats?.completedBookings || 0}</div>
-          <div className="stat-label">Completed</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number">{stats?.totalSpent || 0}</div>
-          <div className="stat-label">Total Spent (₹)</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number">{favorites.length}</div>
-          <div className="stat-label">Favorite Venues</div>
-        </div>
-      </div>
-
-      <div className="recent-section">
-        <h3>Recent Bookings</h3>
-        <div className="recent-bookings">
-          {upcomingAndCancelled.upcoming.slice(0, 3).map((booking) => (
-            <div key={booking._id} className="recent-booking-item">
-              <div className="booking-venue">{booking.venue?.name || 'Venue'}</div>
-              <div className="booking-date">{new Date(booking.date).toLocaleDateString()}</div>
-              <div className="booking-status">{booking.status}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="favorites-section">
-        <h3>Favorite Venues</h3>
-        <div className="favorites-grid">
-          {favorites.slice(0, 4).map((venue) => (
-            <div key={venue._id} className="favorite-venue-card">
-              <img src={getVenueImage(venue)} alt={venue.name} />
-              <div className="venue-info">
-                <div className="venue-name">{venue.name}</div>
-                <div className="venue-location">{formatLocation(venue)}</div>
-                <div className="venue-price">{formatPrice(venue)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderBookings = () => (
-    <div>
-      <div className="tab-header">
-        <button className="tab-chip active">All Bookings</button>
-        <button className="tab-chip">Cancelled</button>
-      </div>
-
-      {loading ? (
-        <div className="loading-state">Loading bookings...</div>
-      ) : (
-        <div className="booking-list">
-          {upcomingAndCancelled.upcoming.map((b) => (
-            <div className="booking-item" key={b._id}>
-              <div style={{ fontWeight: 700 }}>{b.venue?.name || 'Venue'} ({b.court?.name || b.courtType})</div>
-              <div className="booking-meta">
-                <span>{new Date(b.date).toLocaleDateString()}</span>
-                <span>{b.startTime} - {b.endTime}</span>
-                <span>{b.venue?.city || ''}</span>
-                <span>Status: {b.status}</span>
-              </div>
-              <div className="booking-actions">
-                {canCancel(b) && (
-                  <button className="btn danger" onClick={() => cancelBooking(b._id)}>Cancel Booking</button>
-                )}
-                <button className="btn link">Write Review</button>
-              </div>
-            </div>
-          ))}
-
-          {upcomingAndCancelled.cancelled.length > 0 && (
-            <>
-              <h4 style={{ marginTop: 12 }}>Cancelled</h4>
-              {upcomingAndCancelled.cancelled.map((b) => (
-                <div className="booking-item" key={b._id}>
-                  <div style={{ fontWeight: 700 }}>{b.venue?.name || 'Venue'} ({b.court?.name || b.courtType})</div>
-                  <div className="booking-meta">
-                    <span>{new Date(b.date).toLocaleDateString()}</span>
-                    <span>{b.startTime} - {b.endTime}</span>
-                    <span>{b.venue?.city || ''}</span>
-                    <span>Status: {b.status}</span>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderFavorites = () => (
-    <div>
-      <h3>Favorite Venues</h3>
-      {loadingFavorites ? (
-        <div className="loading-state">Loading favorites...</div>
-      ) : (
-        <div className="favorites-list">
-          {favorites.map((venue) => (
-            <div key={venue._id} className="favorite-item">
-              <img src={getVenueImage(venue)} alt={venue.name} className="venue-thumbnail" />
-              <div className="venue-details">
-                <div className="venue-name">{venue.name}</div>
-                <div className="venue-location">{formatLocation(venue)}</div>
-                <div className="venue-price">{formatPrice(venue)}</div>
-                <div className="venue-rating">⭐ {venue.rating?.average || 'N/A'}</div>
-              </div>
-              <div className="venue-actions">
-                <button className="btn primary">View Details</button>
-                <button className="btn danger" onClick={() => removeFavorite(venue._id)}>Remove</button>
-              </div>
-            </div>
-          ))}
-          {favorites.length === 0 && (
-            <div className="empty-state">
-              <p>No favorite venues yet.</p>
-              <p>Start exploring venues and add them to your favorites!</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderReviews = () => (
-    <div>
-      <h3>My Reviews</h3>
-      {loadingReviews ? (
-        <div className="loading-state">Loading reviews...</div>
-      ) : (
-        <div className="reviews-list">
-          {reviews.map((review) => (
-            <div key={review._id} className="review-item">
-              <div className="review-header">
-                <div className="review-venue">{review.venue?.name}</div>
-                <div className="review-rating">{'⭐'.repeat(review.rating)}</div>
-              </div>
-              <div className="review-comment">{review.comment}</div>
-              <div className="review-date">{new Date(review.createdAt).toLocaleDateString()}</div>
-            </div>
-          ))}
-          {reviews.length === 0 && (
-            <div className="empty-state">
-              <p>No reviews yet.</p>
-              <p>Write reviews for venues you've visited!</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderPreferences = () => (
-    <div>
-      <h3>Preferences</h3>
-      {preferences ? (
-        <div className="preferences-form">
-          <div className="preference-group">
-            <h4>Notifications</h4>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={preferences.notifications?.email} />
-              Email notifications
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={preferences.notifications?.sms} />
-              SMS notifications
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={preferences.notifications?.push} />
-              Push notifications
-            </label>
-          </div>
-          
-          <div className="preference-group">
-            <h4>Privacy</h4>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={preferences.privacy?.showProfile} />
-              Show my profile to others
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={preferences.privacy?.showBookingHistory} />
-              Show my booking history
-            </label>
-          </div>
-        </div>
-      ) : (
-        <div className="loading-state">Loading preferences...</div>
-      )}
-    </div>
-  );
-
-  const renderEditProfile = () => (
-    <div>
-      <div className="profile-avatar" style={{ marginBottom: 16 }} />
-      <div className="form-grid">
-        <div className="form-field">
-          <label className="label">Full Name</label>
-          <input
-            ref={nameRef}
-            className={`input ${errors.fullName ? 'input-error' : ''}`}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            aria-invalid={!!errors.fullName}
-            placeholder="Your full name"
-          />
-          {errors.fullName && <small className="field-error">{errors.fullName}</small>}
-        </div>
-        
-        <div className="form-field">
-          <label className="label">Email</label>
-          <input
-            ref={emailRef}
-            className={`input ${errors.email ? 'input-error' : ''}`}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-invalid={!!errors.email}
-            placeholder="you@example.com"
-          />
-          {errors.email && <small className="field-error">{errors.email}</small>}
-        </div>
-        
-        <div className="form-field">
-          <label className="label">Phone Number</label>
-          <input
-            ref={phoneRef}
-            className="input"
-            type="tel"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="Your phone number"
-          />
-        </div>
-        
-        <div className="form-field">
-          <label className="label">Old Password</label>
-          <input
-            ref={oldPassRef}
-            className={`input ${errors.oldPassword ? 'input-error' : ''}`}
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            aria-invalid={!!errors.oldPassword}
-            placeholder="••••••••"
-          />
-          {errors.oldPassword && <small className="field-error">{errors.oldPassword}</small>}
-        </div>
-        
-        <div className="form-field">
-          <label className="label">New Password</label>
-          <input
-            ref={newPassRef}
-            className={`input ${errors.newPassword ? 'input-error' : ''}`}
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            aria-invalid={!!errors.newPassword}
-            placeholder="At least 8 characters"
-          />
-          {errors.newPassword && <small className="field-error">{errors.newPassword}</small>}
-        </div>
-        
-        <div className="form-actions">
-          <button className="btn" type="button" onClick={() => { setOldPassword(''); setNewPassword(''); }}>Reset</button>
-          <button className="btn primary" type="button" disabled={saving} onClick={handleProfileSave}>
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  const menuItems = [
+    { id: 'profile', label: 'Identity Matrix', icon: <FiUser /> },
+    { id: 'favorites', label: 'Arena Sanctuary', icon: <FiHeart /> },
+    { id: 'security', label: 'Security Shield', icon: <FiShield /> },
+    { id: 'preferences', label: 'System Config', icon: <FiSliders /> },
+    { id: 'notifications', label: 'Signal Feed', icon: <FiBell /> },
+  ];
 
   return (
-    <div className="profile-page">
-      <div className="profile-card">
+    <div className="min-h-screen bg-white font-inter overflow-hidden">
+      <div className="max-w-[1600px] mx-auto min-h-screen flex flex-col lg:flex-row p-6 md:p-12 gap-12">
         {/* Sidebar */}
-        <aside className="profile-sidebar">
-          <div className="profile-avatar" />
-          <div className="profile-name">{user?.fullName || user?.name || 'User'}</div>
-          <div style={{ fontSize: '.9rem' }}>{user?.phoneNumber || ''}</div>
-          <div className="profile-email">{user?.email}</div>
-
-          <div className="sidebar-nav">
-            <button className={`sidebar-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
-              Overview
-            </button>
-            <button className={`sidebar-btn ${activeTab === 'bookings' ? 'active' : ''}`} onClick={() => setActiveTab('bookings')}>
-              My Bookings
-            </button>
-            <button className={`sidebar-btn ${activeTab === 'favorites' ? 'active' : ''}`} onClick={() => setActiveTab('favorites')}>
-              Favorites
-            </button>
-            <button className={`sidebar-btn ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>
-              My Reviews
-            </button>
-            <button className={`sidebar-btn ${activeTab === 'edit' ? 'active' : ''}`} onClick={() => setActiveTab('edit')}>
-              Edit Profile
-            </button>
-            <button className={`sidebar-btn ${activeTab === 'preferences' ? 'active' : ''}`} onClick={() => setActiveTab('preferences')}>
-              Preferences
-            </button>
+        <aside className="w-full lg:w-96 space-y-12 shrink-0">
+          <div className="bg-gray-900 rounded-[50px] p-12 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-full h-full bg-primary opacity-[0.05] -skew-x-12 translate-x-1/2" />
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="relative mb-8">
+                <div className="w-40 h-40 rounded-[60px] bg-white p-1 border-4 border-primary/20 shadow-premium overflow-hidden group-hover:scale-105 transition-all duration-700">
+                  <img
+                    src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name}&background=714B67&color=fff&size=256&bold=true`}
+                    className="w-full h-full object-cover rounded-[55px]"
+                    alt=""
+                  />
+                  <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <FiCamera className="text-white text-3xl" />
+                  </div>
+                </div>
+                <button className="absolute -bottom-2 -right-2 w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-2xl hover:bg-white hover:text-primary transition-all duration-500">
+                  <FiCamera size={20} />
+                </button>
+              </div>
+              <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">{user?.name}</h2>
+              <div className="mt-2 flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-[0.3em] italic">
+                <FiActivity /> {user?.role === 'owner' ? 'COMMANDER PROTOCOL' : 'ELITE ATHLETE PROTOCOL'}
+              </div>
+            </div>
           </div>
+
+          <nav className="space-y-3">
+            {menuItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-5 px-8 py-6 rounded-[32px] font-black text-[11px] uppercase tracking-[0.3em] italic transition-all duration-500 ${activeTab === item.id ? 'bg-primary text-white shadow-2xl shadow-primary/30' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-800'
+                  }`}
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span>{item.label}</span>
+                {activeTab === item.id && <FiChevronRight className="ml-auto" />}
+              </button>
+            ))}
+          </nav>
+
+          <button onClick={logout} className="w-full flex items-center gap-5 px-8 py-6 rounded-[32px] font-black text-[11px] uppercase tracking-[0.3em] italic text-red-500 hover:bg-red-50 transition-all duration-500">
+            <FiLogOut className="text-xl" />
+            <span>Terminate Session</span>
+          </button>
         </aside>
 
-        {/* Main content */}
-        <section className="profile-content">
-          {activeTab === 'overview' && renderOverview()}
-          {activeTab === 'bookings' && renderBookings()}
-          {activeTab === 'favorites' && renderFavorites()}
-          {activeTab === 'reviews' && renderReviews()}
-          {activeTab === 'edit' && renderEditProfile()}
-          {activeTab === 'preferences' && renderPreferences()}
-        </section>
+        {/* Content Area */}
+        <main className="flex-1 bg-gray-50 rounded-[60px] p-12 md:p-24 shadow-premium border border-gray-100 overflow-y-auto max-h-[85vh]">
+          <div className="animate-fade-in max-w-4xl">
+            {activeTab === 'profile' && (
+              <div className="space-y-20">
+                <header className="space-y-4">
+                  <div className="w-16 h-1 bg-primary rounded-full mb-8" />
+                  <h1 className="text-5xl font-black text-gray-800 tracking-tighter uppercase italic leading-none">Identity <span className="text-primary">Matrix</span></h1>
+                  <p className="text-xl text-gray-400 font-medium italic">Synchronize your core profile across the global network.</p>
+                </header>
+
+                <form className="space-y-12" onSubmit={handleSave}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2 italic"><FiUser className="text-primary" /> Display Identity</label>
+                      <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="w-full bg-white border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-gray-800 shadow-premium focus:border-primary transition-all outline-none italic uppercase" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2 italic"><FiMail className="text-primary" /> Core Token (Email)</label>
+                      <input type="email" value={formData.email} readOnly className="w-full bg-gray-100 border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-gray-400 cursor-not-allowed outline-none italic lowercase" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2 italic"><FiPhone className="text-primary" /> Comms Signal</label>
+                      <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className="w-full bg-white border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-gray-800 shadow-premium focus:border-primary transition-all outline-none italic uppercase" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2 italic"><FiCreditCard className="text-primary" /> Operational Rank</label>
+                      <div className="bg-primary/5 text-primary rounded-[24px] p-6 text-sm font-black uppercase tracking-[0.2em] border border-primary/10 italic">
+                        {user?.role === 'owner' ? 'COMMANDER RANK' : 'ATHLETE RANK'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-10">
+                    <button type="submit" disabled={saving} className="bg-gray-900 text-white px-16 py-7 rounded-[32px] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl hover:bg-primary hover:scale-[1.05] active:scale-100 transition-all duration-500 disabled:opacity-50 italic">
+                      {saving ? 'SYNCING MATRIX...' : 'SYNCHRONIZE IDENTITY'}
+                    </button>
+                  </div>
+                </form>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-20 border-t border-gray-200">
+                  {[
+                    { val: stats.totalBookings, lab: 'RESERVATIONS', icon: <FiCalendar /> },
+                    { val: stats.totalReviews, lab: 'TESTIMONIALS', icon: <FiActivity /> },
+                    { val: stats.favoriteVenuesCount, lab: 'SANCTUARIES', icon: <FiHeart /> },
+                  ].map((s, i) => (
+                    <div key={i} className="bg-white p-10 rounded-[40px] shadow-premium border border-gray-100 text-center space-y-3 group hover:border-primary/20 transition-all duration-500">
+                      <div className="text-primary text-2xl mb-4 group-hover:scale-110 transition-transform">{s.icon}</div>
+                      <p className="text-5xl font-black text-gray-900 italic tracking-tighter leading-none">{s.val}</p>
+                      <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.3em] italic">{s.lab}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'security' && (
+              <div className="space-y-20">
+                <header className="space-y-4">
+                  <div className="w-16 h-1 bg-primary rounded-full mb-8" />
+                  <h1 className="text-5xl font-black text-gray-800 tracking-tighter uppercase italic leading-none">Security <span className="text-primary">Shield</span></h1>
+                  <p className="text-xl text-gray-400 font-medium italic">Manage authentication parameters and cryptographic keys.</p>
+                </header>
+
+                <form className="space-y-12 max-w-lg" onSubmit={handleSave}>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2 italic"><FiLock className="text-primary" /> Current Verification Key</label>
+                    <input type="password" name="oldPassword" value={formData.oldPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-white border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-gray-800 shadow-premium focus:border-primary transition-all outline-none" />
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2 italic"><FiShield className="text-primary" /> New Master Key</label>
+                    <input type="password" name="newPassword" value={formData.newPassword} onChange={handleInputChange} placeholder="Min. 8 Entropy Units" className="w-full bg-white border-2 border-transparent rounded-[24px] p-6 text-sm font-black text-gray-800 shadow-premium focus:border-primary transition-all outline-none" />
+                  </div>
+
+                  <div className="pt-10">
+                    <button type="submit" disabled={saving || !formData.newPassword} className="bg-gray-900 text-white px-16 py-7 rounded-[32px] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl hover:bg-primary hover:scale-[1.05] active:scale-100 transition-all duration-500 disabled:opacity-50 italic">
+                      RECALIBRATE SECURITY
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {activeTab === 'favorites' && (
+              <div className="space-y-20">
+                <header className="space-y-4">
+                  <div className="w-16 h-1 bg-primary rounded-full mb-8" />
+                  <h1 className="text-5xl font-black text-gray-800 tracking-tighter uppercase italic leading-none">Arena <span className="text-primary">Sanctuary</span></h1>
+                  <p className="text-xl text-gray-400 font-medium italic">Your curated archive of world-class facilities.</p>
+                </header>
+                <div className="py-40 text-center bg-white rounded-[60px] border border-gray-100 shadow-premium space-y-10 italic">
+                  <div className="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mx-auto shadow-inner"><FiHeart size={50} /></div>
+                  <div className="space-y-2">
+                    <h3 className="text-3xl font-black text-gray-800 uppercase tracking-tighter italic">Sanctuary Clear</h3>
+                    <p className="text-gray-400 text-lg font-medium italic max-w-sm mx-auto leading-relaxed">No high-grade venues archived in your personal matrix.</p>
+                  </div>
+                  <button onClick={() => navigate('/venues')} className="bg-primary text-white px-12 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-110 transition-all duration-500 italic">DISCOVER COORDINATES</button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'preferences' && (
+              <div className="space-y-20">
+                <header className="space-y-4">
+                  <div className="w-16 h-1 bg-primary rounded-full mb-8" />
+                  <h1 className="text-5xl font-black text-gray-800 tracking-tighter uppercase italic leading-none">System <span className="text-primary">Config</span></h1>
+                  <p className="text-xl text-gray-400 font-medium italic">Adjust interaction parameters with the global matrix.</p>
+                </header>
+                <div className="space-y-8">
+                  {[
+                    { title: 'Visual Protocol', desc: 'Toggle high-contrast Dark Mode sequence', value: 'Light Matrix', active: true },
+                    { title: 'Global Dialect', desc: 'Communication protocol for signal reception', value: 'English (US)', active: false },
+                    { title: 'Data Telemetry', desc: 'Transmission frequency of operational analytics', value: 'Real-time', active: false },
+                  ].map((pref, i) => (
+                    <div key={i} className="flex items-center justify-between p-12 rounded-[40px] bg-white shadow-premium border border-gray-50 hover:border-primary/20 transition-all duration-500 group cursor-pointer">
+                      <div className="space-y-2">
+                        <h4 className="font-black text-gray-800 text-lg uppercase tracking-tight italic">{pref.title}</h4>
+                        <p className="text-sm text-gray-400 font-medium italic">{pref.desc}</p>
+                      </div>
+                      <div className={`px-8 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest italic border ${pref.active ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                        {pref.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );
 };
 
 export default Profile;
+
+

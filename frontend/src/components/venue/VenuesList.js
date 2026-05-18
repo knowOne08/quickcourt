@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { NoVenuesMessage, VenueCard } from './VenueComponents';
 import { venueService } from '../../services/venueService';
-import './VenuesList.css';
 
 const VenuesList = ({ searchQuery, filters, title = "Sports Venues" }) => {
     const [venues, setVenues] = useState([]);

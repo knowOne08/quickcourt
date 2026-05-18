@@ -1,11 +1,11 @@
-// frontend/src/components/common/ProtectedRoute.js
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
   const { user, isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -14,7 +14,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   // Check role-based access if requiredRole is specified

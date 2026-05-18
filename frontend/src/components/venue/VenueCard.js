@@ -1,51 +1,117 @@
 // frontend/src/components/venue/VenueCard.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './VenueCard.css';
+import { useAuth } from '../../context/AuthContext';
+import { userService } from '../../services/userService';
+import { FiHeart, FiMapPin, FiStar, FiArrowRight, FiActivity, FiShield, FiTrendingUp } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 const VenueCard = ({ venue }) => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleViewDetails = () => {
-    navigate(`/venue/${venue._id}`);
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const checkFavorite = async () => {
+        try {
+          const res = await userService.getFavorites();
+          const favs = res.data?.favorites || [];
+          setIsFavorite(favs.some(f => (f._id || f) === venue._id));
+        } catch (err) { console.error('Favorite status synchronization failed'); }
+      };
+      checkFavorite();
+    }
+  }, [venue._id, isAuthenticated, user]);
+
+  const toggleFavorite = async (e) => {
+    e.stopPropagation(); 
+    if (!isAuthenticated) { toast.error('Authentication required for matrix storage'); navigate('/login'); return; }
+
+    try {
+      setLoading(true);
+      if (isFavorite) {
+        await userService.removeFavorite(venue._id);
+        setIsFavorite(false);
+        toast.success('Removed from personal matrix');
+      } else {
+        await userService.addFavorite(venue._id);
+        setIsFavorite(true);
+        toast.success('Stored in personal matrix!');
+      }
+    } catch (err) { toast.error('Synchronization failure'); }
+    finally { setLoading(false); }
+  };
+
+  const getVenueImage = () => {
+    if (venue.images?.length > 0) return venue.images[0].url || venue.images[0];
+    const fallbacks = { badminton: 'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=800', football: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800', cricket: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800' };
+    return fallbacks[venue.sports?.[0]] || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800';
+  };
+
+  const formatPrice = () => {
+    if (venue.pricing?.hourly) return `₹${venue.pricing.hourly}`;
+    if (venue.priceRange) return `₹${venue.priceRange.min}`;
+    return 'N/A';
   };
 
   return (
-    <div className="venue-card">
-      <div className="venue-image">
+    <div 
+      className="bg-white rounded-[50px] overflow-hidden shadow-premium border border-gray-100 group transition-all duration-700 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-3 cursor-pointer relative font-inter"
+      onClick={() => navigate(`/venue/${venue._id}`)}
+    >
+      <div className="relative h-72 overflow-hidden">
         <img 
-          // src={venue.images[0] || '/assets/images/default-venue.jpg'} 
-          alt={venue.name}
-          onError={(e) => {
-            // e.target.src = '/assets/images/default-venue.jpg';
-          }}
+          src={getVenueImage()} 
+          alt={venue.name} 
+          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-700"></div>
+        
+        <button 
+          className={`absolute top-6 right-6 w-14 h-14 rounded-[22px] flex items-center justify-center backdrop-blur-xl transition-all duration-500 border-2 shadow-2xl z-20 ${
+            isFavorite ? 'bg-primary border-primary text-white scale-110' : 'bg-white/10 border-white/20 text-white hover:bg-white hover:text-primary hover:border-white'
+          }`}
+          onClick={toggleFavorite}
+          disabled={loading}
+        >
+          <FiHeart size={24} fill={isFavorite ? "currentColor" : "none"} className="transition-transform active:scale-150" />
+        </button>
+
+        <div className="absolute bottom-6 left-8 flex flex-col gap-3 z-10">
+          <div className="flex items-center gap-2">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-2xl">
+              <FiStar className="text-primary fill-primary" size={14} />
+              <span className="text-[10px] font-black text-white italic">{venue.rating?.average || '0.0'} INTEGRITY</span>
+            </div>
+          </div>
+          <span className="bg-primary text-white px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] italic w-fit shadow-2xl">
+            {venue.sports?.[0]?.replace('_', ' ') || 'MULTI-SECTOR'} UNIT
+          </span>
+        </div>
       </div>
       
-      <div className="venue-info">
-        <div className="venue-header">
-          <h3 className="venue-name">{venue.name}</h3>
-          <div className="venue-rating">
-            <span className="rating-value">{venue.rating.average}</span>
-            <span className="rating-count">({venue.rating.count})</span>
+      <div className="p-10 space-y-6">
+        <div className="space-y-3">
+          <h3 className="text-3xl font-black text-gray-900 leading-none tracking-tighter uppercase italic group-hover:text-primary transition-colors duration-500">{venue.name}</h3>
+          <p className="text-[10px] text-gray-400 font-black flex items-center gap-2 uppercase tracking-[0.2em] italic">
+            <FiMapPin size={14} className="text-primary" /> 
+            {[venue.location?.city, venue.location?.state].filter(Boolean).join(', ') || 'REMOTE COORDINATES'}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between pt-8 border-t border-gray-50">
+          <div className="flex flex-col">
+            <span className="text-[9px] text-gray-300 font-black uppercase tracking-[0.3em] italic mb-1">OPERATIONAL RATE</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-gray-900 italic tracking-tighter">{formatPrice()}</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase italic">/HR</span>
+            </div>
           </div>
-        </div>
-        
-        <p className="venue-location">{venue.location}</p>
-        
-        <div className="venue-tags">
-          <span className="sport-tag">{venue.sports[0]}</span>
-          <span className="type-tag">{venue.venueType || 'Indoor'}</span>
-          <span className="rating-tag">Top Rated</span>
-          <span className="price-tag">₹ Budget</span>
-        </div>
-        
-        <div className="venue-actions">
-          <button 
-            className="view-details-btn"
-            onClick={handleViewDetails}
-          >
-            View Details
+          
+          <button className="w-16 h-16 rounded-[24px] bg-gray-50 text-gray-300 flex items-center justify-center transition-all duration-500 group-hover:bg-gray-900 group-hover:text-white group-hover:shadow-2xl group-hover:rotate-45">
+            <FiArrowRight size={28} className="-rotate-45 group-hover:rotate-0 transition-transform duration-500" />
           </button>
         </div>
       </div>

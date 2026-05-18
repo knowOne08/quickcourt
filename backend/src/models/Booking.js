@@ -42,6 +42,11 @@ const bookingSchema = new mongoose.Schema({
     enum: ['pending', 'confirmed', 'cancelled', 'completed'],
     default: 'pending'
   },
+  paymentMethod: {
+    type: String,
+    enum: ['online', 'cash'],
+    default: 'online'
+  },
   paymentStatus: {
     type: String,
     enum: ['pending', 'paid', 'failed', 'refunded'],
@@ -56,6 +61,36 @@ const bookingSchema = new mongoose.Schema({
   cancelledBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+  team: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Team'
+  },
+  playerMode: {
+    type: String,
+    enum: ['single', 'duo', 'team'],
+    default: 'team'
+  },
+  teamSize: {
+    type: Number,
+    default: 1
+  },
+  matchMode: {
+    type: String,
+    enum: ['private', 'public', 'looking'],
+    default: 'private'
+  },
+  ownerRevenue: {
+    type: Number,
+    default: 0
+  },
+  adminRevenue: {
+    type: Number,
+    default: 0
+  },
+  review: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Review'
   }
 }, {
   timestamps: true

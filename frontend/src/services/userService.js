@@ -2,95 +2,39 @@
 import api from './api';
 
 export const userService = {
-  // Profile management
-  getProfile: () => {
-    return api.get('/users/profile');
+  // Stats
+  getUserStats: () => api.get('/users/stats'),
+  
+  // Profile
+  getProfile: () => api.get('/users/profile'),
+  updateProfile: (profileData) => api.patch('/users/profile', profileData),
+  changePassword: (oldPassword, newPassword) => api.patch('/users/change-password', { oldPassword, newPassword }),
+  
+  // Favorites
+  getFavorites: () => api.get('/users/favorites'),
+  addFavorite: (venueId) => api.post(`/users/favorites/${venueId}`),
+  removeFavorite: (venueId) => api.delete(`/users/favorites/${venueId}`),
+  
+  // Bookings
+  getBookingHistory: (params) => api.get('/users/bookings', { params }),
+  getBookingDetails: (id) => api.get(`/users/bookings/${id}`),
+
+  // Public/All Users
+  getAllUsers: async (search = '', role = 'user') => {
+    try {
+      const response = await api.get(`/users/all?search=${search}&role=${role}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { success: false, error: 'Failed to fetch users' };
+    }
   },
 
-  updateProfile: (userData) => {
-    return api.patch('/users/profile', userData);
-  },
-
-  changePassword: (oldPassword, newPassword) => {
-    return api.patch('/users/change-password', { oldPassword, newPassword });
-  },
-
-  deleteAccount: (password) => {
-    return api.delete('/users/account', { data: { password } });
-  },
-
-  // Booking history
-  getBookingHistory: (params = {}) => {
-    return api.get('/users/bookings', { params });
-  },
-
-  getBookingDetails: (bookingId) => {
-    return api.get(`/users/bookings/${bookingId}`);
-  },
-
-  // Favorite venues
-  getFavoriteVenues: () => {
-    return api.get('/users/favorites');
-  },
-
-  addFavoriteVenue: (venueId) => {
-    return api.post(`/users/favorites/${venueId}`);
-  },
-
-  removeFavoriteVenue: (venueId) => {
-    return api.delete(`/users/favorites/${venueId}`);
-  },
-
-  // Reviews and ratings
-  getUserReviews: (params = {}) => {
-    return api.get('/users/reviews', { params });
-  },
-
-  createReview: (reviewData) => {
-    return api.post('/users/reviews', reviewData);
-  },
-
-  updateReview: (reviewId, reviewData) => {
-    return api.patch(`/users/reviews/${reviewId}`, reviewData);
-  },
-
-  deleteReview: (reviewId) => {
-    return api.delete(`/users/reviews/${reviewId}`);
-  },
-
-  // Notifications
-  getNotifications: () => {
-    return api.get('/users/notifications');
-  },
-
-  markNotificationRead: (notificationId) => {
-    return api.patch(`/users/notifications/${notificationId}/read`);
-  },
-
-  // Payment methods
-  getPaymentMethods: () => {
-    return api.get('/users/payment-methods');
-  },
-
-  addPaymentMethod: (paymentData) => {
-    return api.post('/users/payment-methods', paymentData);
-  },
-
-  removePaymentMethod: (methodId) => {
-    return api.delete(`/users/payment-methods/${methodId}`);
-  },
-
-  // User statistics
-  getUserStats: () => {
-    return api.get('/users/stats');
-  },
-
-  // User preferences
-  getPreferences: () => {
-    return api.get('/users/preferences');
-  },
-
-  updatePreferences: (preferences) => {
-    return api.patch('/users/preferences', preferences);
+  getPublicProfile: async (userId) => {
+    try {
+      const response = await api.get(`/users/profile/public/${userId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { success: false, error: 'Failed to fetch user profile' };
+    }
   }
 };

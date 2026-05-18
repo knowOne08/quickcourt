@@ -5,7 +5,7 @@ const { protect, restrictTo } = require('../middleware/auth');
 const router = express.Router();
 
 // Protect all routes and restrict to admin
-// router.use(protect);
+router.use(protect);
 router.use(restrictTo('admin'));
 
 // User management

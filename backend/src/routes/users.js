@@ -32,6 +32,7 @@ router.get('/profile', protect, userController.getProfile);
 router.patch('/profile', protect, userController.updateProfile);
 router.patch('/change-password', protect, userController.changePassword);
 router.delete('/account', protect, userController.deleteAccount);
+router.get('/all', protect, userController.getAllUsersPublic);
 
 // User preferences
 router.get('/preferences', userController.getPreferences || ((req, res) => {
@@ -55,8 +56,8 @@ router.patch('/preferences', userController.updatePreferences || ((req, res) => 
 }));
 
 // Booking history
-router.get('/bookings', userController.getBookingHistory);
-router.get('/bookings/:bookingId', userController.getBookingDetails || ((req, res) => {
+router.get('/bookings', protect, userController.getBookingHistory);
+router.get('/bookings/:bookingId', protect, userController.getBookingDetails || ((req, res) => {
   res.json({
     success: true,
     message: 'Booking details - Coming soon',
@@ -65,12 +66,12 @@ router.get('/bookings/:bookingId', userController.getBookingDetails || ((req, re
 }));
 
 // Favorite venues
-router.get('/favorites', userController.getFavoriteVenues);
-router.post('/favorites/:venueId', userController.addFavoriteVenue);
-router.delete('/favorites/:venueId', userController.removeFavoriteVenue);
+router.get('/favorites', protect, userController.getFavoriteVenues);
+router.post('/favorites/:venueId', protect, userController.addFavoriteVenue);
+router.delete('/favorites/:venueId', protect, userController.removeFavoriteVenue);
 
 // Reviews and ratings
-router.get('/reviews', userController.getUserReviews || ((req, res) => {
+router.get('/reviews', protect, userController.getUserReviews || ((req, res) => {
   res.json({
     success: true,
     message: 'User reviews - Coming soon',
@@ -78,7 +79,7 @@ router.get('/reviews', userController.getUserReviews || ((req, res) => {
   });
 }));
 
-router.post('/reviews', userController.createReview || ((req, res) => {
+router.post('/reviews', protect, userController.createReview || ((req, res) => {
   res.json({
     success: true,
     message: 'Create review - Coming soon',
@@ -86,7 +87,7 @@ router.post('/reviews', userController.createReview || ((req, res) => {
   });
 }));
 
-router.patch('/reviews/:reviewId', userController.updateReview || ((req, res) => {
+router.patch('/reviews/:reviewId', protect, userController.updateReview || ((req, res) => {
   res.json({
     success: true,
     message: 'Update review - Coming soon',
@@ -94,7 +95,7 @@ router.patch('/reviews/:reviewId', userController.updateReview || ((req, res) =>
   });
 }));
 
-router.delete('/reviews/:reviewId', userController.deleteReview || ((req, res) => {
+router.delete('/reviews/:reviewId', protect, userController.deleteReview || ((req, res) => {
   res.json({
     success: true,
     message: 'Delete review - Coming soon',
@@ -103,7 +104,7 @@ router.delete('/reviews/:reviewId', userController.deleteReview || ((req, res) =
 }));
 
 // Notifications
-router.get('/notifications', userController.getNotifications || ((req, res) => {
+router.get('/notifications', protect, userController.getNotifications || ((req, res) => {
   res.json({
     success: true,
     message: 'Notifications - Coming soon',
@@ -111,7 +112,7 @@ router.get('/notifications', userController.getNotifications || ((req, res) => {
   });
 }));
 
-router.patch('/notifications/:notificationId/read', userController.markNotificationRead || ((req, res) => {
+router.patch('/notifications/:notificationId/read', protect, userController.markNotificationRead || ((req, res) => {
   res.json({
     success: true,
     message: 'Mark notification read - Coming soon',
@@ -145,7 +146,7 @@ router.delete('/payment-methods/:methodId', userController.removePaymentMethod |
 }));
 
 // User statistics
-router.get('/stats', userController.getUserStats || ((req, res) => {
+router.get('/stats', protect, userController.getUserStats || ((req, res) => {
   res.json({
     success: true,
     message: 'User statistics - Coming soon',

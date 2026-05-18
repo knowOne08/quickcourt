@@ -822,6 +822,40 @@ const getUserStats = async (req, res) => {
   }
 };
 
+// @desc    Get all users (public info) for matchmaking
+// @route   GET /api/users/all
+// @access  Private
+const getAllUsersPublic = async (req, res) => {
+  try {
+    const { search, role = 'user' } = req.query;
+    
+    const query = { 
+      isActive: true,
+      _id: { $ne: req.user._id } // Exclude self
+    };
+
+    if (role) query.role = role;
+    if (search) {
+      query.name = { $regex: search, $options: 'i' };
+    }
+
+    const users = await User.find(query)
+      .select('name avatar role createdAt')
+      .limit(50);
+
+    res.status(200).json({
+      success: true,
+      users
+    });
+  } catch (error) {
+    logger.error(`Get all users error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+};
+
 module.exports = {
   getProfile,
   getPublicProfile,
@@ -844,5 +878,6 @@ module.exports = {
   getPaymentMethods,
   addPaymentMethod,
   removePaymentMethod,
-  getUserStats
+  getUserStats,
+  getAllUsersPublic
 };

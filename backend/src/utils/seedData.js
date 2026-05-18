@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Venue = require('../models/Venue');
 const Court = require('../models/Court');
+const seedBookings = require('./seedBookings');
 const logger = require('./logger');
 
 const seedData = async () => {
@@ -424,6 +425,9 @@ const seedData = async () => {
     }
 
     logger.info('Created courts');
+
+    // Seed sample bookings
+    await seedBookings();
 
     logger.info('Seed data created successfully!');
     logger.info(`Created ${users.length} users`);

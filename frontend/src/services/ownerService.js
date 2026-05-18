@@ -2,15 +2,25 @@
 import api from './api';
 
 export const ownerService = {
-  // Dashboard
-  getDashboardStats: () => api.get('/owner/dashboard/stats'),
-  getChartData: (timeRange = 'weekly') => api.get(`/owner/dashboard/charts?range=${timeRange}`),
+  // Test endpoint
+  testConnection: () => api.get('/owner/profile'),
   
-  // Facilities
-  getFacilities: () => api.get('/owner/facilities'),
-  createFacility: (facilityData) => api.post('/owner/facilities', facilityData),
-  updateFacility: (id, facilityData) => api.patch(`/owner/facilities/${id}`, facilityData),
-  deleteFacility: (id) => api.delete(`/owner/facilities/${id}`),
+  // Dashboard
+  getDashboardStats: () => api.get('/owner/analytics/dashboard'),
+  getChartData: (timeRange = 'weekly') => api.get(`/owner/analytics/dashboard?range=${timeRange}`),
+  
+  // Venues (Updated from facilities)
+  getVenues: () => api.get('/owner/venues'),
+  createVenue: (venueData) => api.post('/owner/venues', venueData),
+  updateVenue: (id, venueData) => api.patch(`/owner/venues/${id}`, venueData),
+  deleteVenue: (id) => api.delete(`/owner/venues/${id}`),
+  getVenueDetails: (id) => api.get(`/owner/venues/${id}`),
+  
+  // Legacy facility endpoints (for backward compatibility)
+  getFacilities: () => api.get('/owner/venues'),
+  createFacility: (facilityData) => api.post('/owner/venues', facilityData),
+  updateFacility: (id, facilityData) => api.patch(`/owner/venues/${id}`, facilityData),
+  deleteFacility: (id) => api.delete(`/owner/venues/${id}`),
   
   // Bookings
   getBookings: (filters = {}) => api.get('/owner/bookings', { params: filters }),

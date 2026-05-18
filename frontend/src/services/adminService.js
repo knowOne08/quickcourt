@@ -3,8 +3,8 @@ import api from './api';
 
 export const adminService = {
   // Dashboard
-  getGlobalStats: () => api.get('/admin/stats'),
-  getChartData: () => api.get('/admin/charts'),
+  getGlobalStats: () => api.get('/admin/analytics/dashboard'),
+  getChartData: () => api.get('/admin/analytics/dashboard'), // We'll use this as a base for now
   
   // Users Management
   getAllUsers: (filters = {}) => api.get('/admin/users', { params: filters }),
@@ -13,14 +13,24 @@ export const adminService = {
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
   
   // Facility Owners
-  getFacilityOwners: () => api.get('/admin/facility-owners'),
-  approveFacilityOwner: (id) => api.patch(`/admin/facility-owners/${id}/approve`),
+  getFacilityOwners: () => api.get('/admin/owners'),
+  approveFacilityOwner: (id) => api.patch(`/admin/owners/${id}/verify`),
   
-  // Facilities Management
-  getPendingFacilities: () => api.get('/admin/facilities/pending'),
-  getAllFacilities: (filters = {}) => api.get('/admin/facilities', { params: filters }),
-  approveFacility: (id, data) => api.patch(`/admin/facilities/${id}/approve`, data),
-  rejectFacility: (id, reason) => api.patch(`/admin/facilities/${id}/reject`, { reason }),
+  // Venues Management (Updated)
+  getAllVenues: (filters = {}) => api.get('/admin/venues', { params: filters }),
+  getVenueById: (id) => api.get(`/admin/venues/${id}`),
+  getPendingVenues: () => api.get('/admin/venues', { params: { status: 'pending' } }),
+  approveVenue: (id, remarks = '') => api.patch(`/admin/venues/${id}/approve`, { remarks }),
+  rejectVenue: (id, reason) => api.patch(`/admin/venues/${id}/reject`, { reason }),
+  updateVenueStatus: (id, status, reason) => api.patch(`/admin/venues/${id}/status`, { status, reason }),
+  
+  deleteVenue: (id) => api.delete(`/admin/venues/${id}`),
+  
+  // Legacy facility endpoints (for backward compatibility)
+  getPendingFacilities: () => api.get('/admin/venues', { params: { status: 'pending' } }),
+  getAllFacilities: (filters = {}) => api.get('/admin/venues', { params: filters }),
+  approveFacility: (id, data) => api.patch(`/admin/venues/${id}/approve`, data),
+  rejectFacility: (id, reason) => api.patch(`/admin/venues/${id}/reject`, { reason }),
   
   // Bookings
   getAllBookings: (filters = {}) => api.get('/admin/bookings', { params: filters }),

@@ -1,7 +1,6 @@
 // frontend/src/pages/admin/FacilityApproval.js
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
-import './FacilityApproval.css';
 
 const FacilityApproval = () => {
   const [pendingFacilities, setPendingFacilities] = useState([]);

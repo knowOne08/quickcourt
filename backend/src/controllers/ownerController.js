@@ -4,6 +4,7 @@ const Court = require('../models/Court');
 const Booking = require('../models/Booking');
 const Review = require('../models/Review');
 const Payment = require('../models/Payment');
+const { createNotification } = require('../utils/notificationHelper');
 
 // Owner registration and profile
 exports.registerAsOwner = async (req, res) => {
@@ -19,14 +20,14 @@ exports.registerAsOwner = async (req, res) => {
       });
     }
 
-    if (user.role === 'owner') {
+    if (user.role === 'facility_owner') {
       return res.status(400).json({
         status: 'error',
-        message: 'User is already registered as owner'
+        message: 'User is already registered as facility owner'
       });
     }
 
-    user.role = 'owner';
+    user.role = 'facility_owner';
     user.ownerProfile = {
       businessName,
       businessType,
@@ -59,10 +60,10 @@ exports.getOwnerProfile = async (req, res) => {
     const userId = req.user.id;
     const user = await User.findById(userId).select('-password');
 
-    if (user.role !== 'owner') {
+    if (user.role !== 'facility_owner') {
       return res.status(403).json({
         status: 'error',
-        message: 'Access denied. Owner role required.'
+        message: 'Access denied. Facility owner role required.'
       });
     }
 
@@ -112,14 +113,86 @@ exports.updateOwnerProfile = async (req, res) => {
 // Venue management
 exports.createVenue = async (req, res) => {
   try {
+    console.log('Create venue request body:', req.body);
+    console.log('Create venue files:', req.files);
+    
     const ownerId = req.user.id;
-    const venueData = { ...req.body, owner: ownerId };
+    
+    // Parse nested form data (handle both nested objects and flat fields)
+    const venueData = {
+      name: req.body.name,
+      description: req.body.description,
+      owner: ownerId,
+      location: {
+        address: req.body.location?.address || req.body.locationAddress,
+        city: req.body.location?.city || req.body.locationCity,
+        state: req.body.location?.state || req.body.locationState,
+        country: req.body.location?.country || req.body.locationCountry || 'India',
+        pincode: req.body.location?.pincode || req.body.locationPincode
+      },
+      sports: req.body.sports || (req.body['sports[]'] ? (Array.isArray(req.body['sports[]']) ? req.body['sports[]'] : [req.body['sports[]']]) : []),
+      venueType: req.body.venueType,
+      amenities: req.body.amenities || (req.body['amenities[]'] ? (Array.isArray(req.body['amenities[]']) ? req.body['amenities[]'] : [req.body['amenities[]']]) : []),
+      availability: {
+        openTime: req.body.availability?.openTime || req.body.availabilityOpenTime,
+        closeTime: req.body.availability?.closeTime || req.body.availabilityCloseTime,
+        weeklyOff: req.body.availability?.weeklyOff || (req.body['availabilityWeeklyOff[]'] ? (Array.isArray(req.body['availabilityWeeklyOff[]']) ? req.body['availabilityWeeklyOff[]'] : [req.body['availabilityWeeklyOff[]']]) : [])
+      },
+      pricing: {
+        hourly: parseFloat(req.body.pricing?.hourly || req.body.pricingHourly),
+        currency: req.body.pricing?.currency || req.body.pricingCurrency || 'INR'
+      },
+      contact: {
+        phone: req.body.contact?.phone || req.body.contactPhone || '',
+        email: req.body.contact?.email || req.body.contactEmail || '',
+        website: req.body.contact?.website || req.body.contactWebsite || ''
+      },
+      policies: {
+        cancellation: req.body.policies?.cancellation || req.body.policiesCancellation || 'moderate',
+        advance_booking_days: parseInt(req.body.policies?.advance_booking_days || req.body.policiesAdvanceBookingDays) || 30,
+        refund_policy: req.body.policies?.refund_policy || req.body.policiesRefundPolicy || ''
+      },
+      slotDuration: req.body.slotDuration || 60
+    };
 
+    // Handle image uploads
     if (req.files && req.files.length > 0) {
-      venueData.images = req.files.map(file => file.path);
+      venueData.images = req.files.map(file => ({
+        url: `/uploads/venues/${file.filename}`, // Construct proper URL
+        publicId: file.filename,
+        caption: file.originalname
+      }));
     }
 
+    console.log('Processed venue data:', venueData);
+
     const venue = await Venue.create(venueData);
+
+    // For development: auto-approve venues if in development mode
+    if (process.env.NODE_ENV === 'development') {
+      venue.status = 'pending';
+      venue.approvedAt = new Date();
+      venue.approvedBy = ownerId; // Self-approved for development
+      await venue.save();
+      console.log('Venue auto-approved for development');
+    }
+
+    // Notify Admin for approval
+    try {
+      const admins = await User.find({ role: 'admin' });
+      for (const admin of admins) {
+        await createNotification({
+          recipient: admin._id,
+          sender: ownerId,
+          type: 'VENUE_PENDING',
+          title: 'New Venue Approval Request',
+          message: `A new venue "${venue.name}" has been submitted for approval by ${req.user.name}.`,
+          data: { venueId: venue._id }
+        });
+      }
+    } catch (notifyError) {
+      console.error('Failed to notify admins:', notifyError);
+    }
 
     res.status(201).json({
       status: 'success',
@@ -128,6 +201,7 @@ exports.createVenue = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Create venue error:', error);
     res.status(400).json({
       status: 'error',
       message: error.message
@@ -206,6 +280,9 @@ exports.updateVenue = async (req, res) => {
     if (req.files && req.files.length > 0) {
       updates.images = req.files.map(file => file.path);
     }
+
+    // Force re-approval after any update
+    updates.status = 'pending';
 
     const venue = await Venue.findOneAndUpdate(
       { _id: id, owner: ownerId },
@@ -378,6 +455,7 @@ exports.getAllBookings = async (req, res) => {
       .populate('user', 'name email phone')
       .populate('venue', 'name location')
       .populate('court', 'name sport')
+      .populate('team')
       .sort({ date: -1, startTime: 1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -430,6 +508,7 @@ exports.getVenueBookings = async (req, res) => {
     const bookings = await Booking.find(query)
       .populate('user', 'name email phone')
       .populate('court', 'name sport')
+      .populate('team')
       .sort({ date: -1, startTime: 1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -494,25 +573,17 @@ exports.getDashboardAnalytics = async (req, res) => {
     const totalCourts = await Court.countDocuments({ venue: { $in: venueIds } });
     const totalBookings = await Booking.countDocuments({ venue: { $in: venueIds } });
     
-    const revenue = await Payment.aggregate([
-      {
-        $lookup: {
-          from: 'bookings',
-          localField: 'booking',
-          foreignField: '_id',
-          as: 'bookingData'
-        }
-      },
+    const revenue = await Booking.aggregate([
       {
         $match: {
-          'bookingData.venue': { $in: venueIds },
-          status: 'completed'
+          venue: { $in: venueIds },
+          status: 'confirmed'
         }
       },
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: '$amount' }
+          totalRevenue: { $sum: '$ownerRevenue' }
         }
       }
     ]);
@@ -539,6 +610,52 @@ exports.getDashboardAnalytics = async (req, res) => {
       }
     ]);
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const todayRevenue = await Payment.aggregate([
+      {
+        $lookup: {
+          from: 'bookings',
+          localField: 'booking',
+          foreignField: '_id',
+          as: 'bookingData'
+        }
+      },
+      {
+        $match: {
+          'bookingData.venue': { $in: venueIds },
+          status: 'completed',
+          createdAt: { $gte: startOfToday }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const sportWiseEarnings = await Booking.aggregate([
+      {
+        $match: { venue: { $in: venueIds }, status: 'confirmed' }
+      },
+      {
+        $group: {
+          _id: '$sport', // Assuming sport is available or can be joined from court
+          total: { $sum: '$totalAmount' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const recentBookings = await Booking.find({ venue: { $in: venueIds } })
+      .populate('user', 'name email')
+      .populate('court', 'name sport')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
     res.status(200).json({
       status: 'success',
       data: {
@@ -546,6 +663,9 @@ exports.getDashboardAnalytics = async (req, res) => {
         totalCourts,
         totalBookings,
         totalRevenue: revenue[0]?.totalRevenue || 0,
+        todayRevenue: todayRevenue[0]?.total || 0,
+        recentBookings,
+        sportWiseEarnings,
         monthlyBookings
       }
     });

@@ -112,6 +112,7 @@ export const BookingProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await bookingService.getUserBookings();
+      console.log('📡 API Response in Context:', response.data);
 
       // Ensure we always have an array of bookings
       let bookings = [];
@@ -149,9 +150,10 @@ export const BookingProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await bookingService.createBooking(bookingData);
-      dispatch({ type: 'ADD_BOOKING', payload: response.data });
+      const booking = response.data?.data?.booking || response.data?.booking || response.data;
+      dispatch({ type: 'ADD_BOOKING', payload: booking });
       dispatch({ type: 'SET_BOOKING_STEP', payload: 'confirmation' });
-      return { success: true, booking: response.data };
+      return { success: true, booking };
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to create booking' });
       return { success: false, message: error.response?.data?.message || 'Failed to create booking' };
