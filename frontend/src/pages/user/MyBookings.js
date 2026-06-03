@@ -29,17 +29,29 @@ const MyBookings = () => {
     } catch(e) { return new Date(0); }
   };
 
+  const getBookingEndDateTime = (booking) => {
+    if (!booking || !booking.date) return new Date(0);
+    try {
+      const dateObj = new Date(booking.date);
+      if (isNaN(dateObj.getTime())) return new Date(0);
+      const year = dateObj.getUTCFullYear();
+      const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getUTCDate()).padStart(2, '0');
+      return new Date(`${year}-${month}-${day}T${booking.endTime || '23:59'}`);
+    } catch(e) { return new Date(0); }
+  };
+
   const filterBookings = (bookings) => {
     const now = new Date();
     if (activeTab === 'upcoming') {
       return bookings.filter(booking => {
-        const bookingDateTime = getBookingDateTime(booking);
-        return bookingDateTime > now && booking.status !== 'cancelled';
+        const bookingEndDateTime = getBookingEndDateTime(booking);
+        return bookingEndDateTime > now && booking.status !== 'cancelled' && booking.status !== 'completed';
       });
     } else if (activeTab === 'past') {
       return bookings.filter(booking => {
-        const bookingDateTime = getBookingDateTime(booking);
-        return bookingDateTime <= now || booking.status === 'completed';
+        const bookingEndDateTime = getBookingEndDateTime(booking);
+        return bookingEndDateTime <= now || booking.status === 'completed';
       });
     } else if (activeTab === 'cancelled') {
       return bookings.filter(booking => booking.status === 'cancelled');
@@ -72,10 +84,11 @@ const MyBookings = () => {
   }
 
   const tabCounts = {
-    upcoming: userBookings.filter(b => getBookingDateTime(b) > new Date() && b.status !== 'cancelled').length,
-    past: userBookings.filter(b => getBookingDateTime(b) <= new Date() || b.status === 'completed').length,
+    upcoming: userBookings.filter(b => getBookingEndDateTime(b) > new Date() && b.status !== 'cancelled' && b.status !== 'completed').length,
+    past: userBookings.filter(b => getBookingEndDateTime(b) <= new Date() || b.status === 'completed').length,
     cancelled: userBookings.filter(b => b.status === 'cancelled').length
   };
+
 
   return (
     <div className="min-h-screen bg-white font-inter">

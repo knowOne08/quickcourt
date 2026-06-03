@@ -10,8 +10,11 @@ async function checkBookings() {
     console.log(`Database Name: ${mongoose.connection.db.databaseName}`);
     console.log('---');
     
-    const bookings = await Booking.find().sort({ createdAt: -1 }).limit(5);
+    const bookings = await Booking.find().sort({ createdAt: -1 }).limit(10);
     console.log(`Total Bookings: ${await Booking.countDocuments()}`);
+    bookings.forEach((b, i) => {
+      console.log(`Booking ${i}: _id=${b._id}, user=${b.user}, status=${b.status}, date=${b.date?.toISOString()}, startTime=${b.startTime}, endTime=${b.endTime}`);
+    });
     
     const targetEmail = 'pvyom010@gmail.com';
     const usersWithEmail = await User.find({ email: targetEmail });

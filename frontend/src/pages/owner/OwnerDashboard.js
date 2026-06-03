@@ -10,6 +10,7 @@ import {
   FiMapPin, FiCheckCircle, FiXCircle, FiEdit, FiTrash2, FiChevronRight, FiGrid, FiArrowUpRight, FiShield, FiBriefcase
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import OwnerAnalytics from '../../components/dashboard/OwnerAnalytics';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -29,7 +30,10 @@ const OwnerDashboard = () => {
         totalBookings: dashboardData.totalBookings || 0,
         activeCourts: dashboardData.totalCourts || 0,
         earnings: dashboardData.totalRevenue || 0,
-        recentBookings: dashboardData.recentBookings || []
+        todayRevenue: dashboardData.todayRevenue || 0,
+        recentBookings: dashboardData.recentBookings || [],
+        monthlyBookings: dashboardData.monthlyBookings || [],
+        sportWiseEarnings: dashboardData.sportWiseEarnings || []
       });
     } catch (error) { toast.error('Telemetry failure. Reconnecting...'); }
     finally { setLoading(false); }
@@ -421,7 +425,8 @@ const OwnerDashboard = () => {
           {activeTab === 'overview' && renderOverview()}
           {activeTab === 'venues' && renderVenues()}
           {activeTab === 'bookings' && renderBookingsTab()}
-          {['analytics', 'settings'].includes(activeTab) && (
+          {activeTab === 'analytics' && <OwnerAnalytics stats={stats} />}
+          {['settings'].includes(activeTab) && (
             <div className="bg-gray-50 rounded-[100px] p-56 shadow-premium border border-gray-100 text-center animate-fade-in relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 -skew-x-12 translate-x-1/2" />
               <div className="w-40 h-40 bg-white text-primary rounded-[50px] flex items-center justify-center text-6xl mx-auto mb-14 shadow-premium group-hover:scale-110 transition-transform duration-1000 border border-gray-50">

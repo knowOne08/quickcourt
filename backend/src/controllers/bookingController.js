@@ -55,23 +55,34 @@ exports.createBooking = async (req, res) => {
     const bookingStatus = paymentMethod === 'cash' ? 'confirmed' : 'pending';
 
     // Create booking
-    const booking = await Booking.create({
-      user: userId,
-      venue,
-      court,
-      date: new Date(new Date(date).toISOString().split('T')[0] + 'T00:00:00.000Z'),
-      startTime,
-      endTime,
-      duration,
-      totalAmount,
-      adminRevenue,
-      ownerRevenue,
-      paymentMethod: paymentMethod || 'online',
-      status: bookingStatus,
-      playerMode,
-      matchMode,
-      teamSize
-    });
+    let booking;
+    try {
+      booking = await Booking.create({
+        user: userId,
+        venue,
+        court,
+        date: new Date(new Date(date).toISOString().split('T')[0] + 'T00:00:00.000Z'),
+        startTime,
+        endTime,
+        duration,
+        totalAmount,
+        adminRevenue,
+        ownerRevenue,
+        paymentMethod: paymentMethod || 'online',
+        status: bookingStatus,
+        playerMode,
+        matchMode,
+        teamSize
+      });
+    } catch (dbError) {
+      if (dbError.code === 11000) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'Concurrency conflict: This time slot was just booked by someone else. Please choose another slot.'
+        });
+      }
+      throw dbError;
+    }
 
     // Only create team if booking is confirmed (e.g. cash payment)
     // For online payments, the team will be created in verifyPayment after successful transaction

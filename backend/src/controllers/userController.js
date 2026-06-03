@@ -782,6 +782,66 @@ const getUserStats = async (req, res) => {
   try {
     const userId = req.user._id;
 
+    if (req.user.role === 'admin') {
+      const [totalBookings, totalVenues, totalUsers] = await Promise.all([
+        Booking.countDocuments(),
+        Venue.countDocuments(),
+        User.countDocuments()
+      ]);
+
+      const stats = {
+        totalBookings,
+        completedBookings: 0,
+        cancelledBookings: 0,
+        totalSpent: 0,
+        totalReviews: totalVenues, // Map totalVenues to totalReviews for UI compatibility
+        favoriteVenuesCount: totalUsers, // Map totalUsers to favoriteVenuesCount for UI compatibility
+        memberSince: req.user.createdAt,
+        lastBooking: null
+      };
+
+      return res.status(200).json({
+        success: true,
+        stats
+      });
+    }
+
+    if (req.user.role === 'facility_owner') {
+      const venues = await Venue.find({ owner: userId });
+      const venueIds = venues.map(v => v._id);
+
+      const [
+        totalBookings,
+        completedBookings,
+        cancelledBookings,
+        totalReviews
+      ] = await Promise.all([
+        Booking.countDocuments({ venue: { $in: venueIds } }),
+        Booking.countDocuments({ venue: { $in: venueIds }, status: 'completed' }),
+        Booking.countDocuments({ venue: { $in: venueIds }, status: 'cancelled' }),
+        Review.countDocuments({ venue: { $in: venueIds } })
+      ]);
+
+      const completedBookingsList = await Booking.find({ venue: { $in: venueIds }, status: 'completed' }).select('totalAmount');
+      const totalRevenue = completedBookingsList.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+
+      const stats = {
+        totalBookings,
+        completedBookings,
+        cancelledBookings,
+        totalSpent: totalRevenue, // return revenue as totalSpent for compatibility
+        totalReviews,
+        favoriteVenuesCount: venues.length, // total venues owned
+        memberSince: req.user.createdAt,
+        lastBooking: await Booking.findOne({ venue: { $in: venueIds } }).sort({ createdAt: -1 }).select('createdAt')
+      };
+
+      return res.status(200).json({
+        success: true,
+        stats
+      });
+    }
+
     const [
       totalBookings,
       completedBookings,
@@ -814,6 +874,7 @@ const getUserStats = async (req, res) => {
       stats
     });
   } catch (error) {
+
     logger.error(`Get user stats error: ${error.message}`);
     res.status(500).json({
       success: false,

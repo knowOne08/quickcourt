@@ -571,19 +571,19 @@ exports.getDashboardAnalytics = async (req, res) => {
 
     const totalVenues = venues.length;
     const totalCourts = await Court.countDocuments({ venue: { $in: venueIds } });
-    const totalBookings = await Booking.countDocuments({ venue: { $in: venueIds } });
+    const totalBookings = await Booking.countDocuments({ venue: { $in: venueIds }, status: { $ne: 'cancelled' } });
     
     const revenue = await Booking.aggregate([
       {
         $match: {
           venue: { $in: venueIds },
-          status: 'confirmed'
+          status: { $in: ['confirmed', 'completed'] }
         }
       },
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: '$ownerRevenue' }
+          totalRevenue: { $sum: '$totalAmount' }
         }
       }
     ]);
@@ -592,6 +592,7 @@ exports.getDashboardAnalytics = async (req, res) => {
       {
         $match: {
           venue: { $in: venueIds },
+          status: { $ne: 'cancelled' },
           createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
         }
       },
@@ -613,37 +614,43 @@ exports.getDashboardAnalytics = async (req, res) => {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const todayRevenue = await Payment.aggregate([
-      {
-        $lookup: {
-          from: 'bookings',
-          localField: 'booking',
-          foreignField: '_id',
-          as: 'bookingData'
-        }
-      },
+    const todayRevenue = await Booking.aggregate([
       {
         $match: {
-          'bookingData.venue': { $in: venueIds },
-          status: 'completed',
+          venue: { $in: venueIds },
+          status: { $in: ['confirmed', 'completed'] },
           createdAt: { $gte: startOfToday }
         }
       },
       {
         $group: {
           _id: null,
-          total: { $sum: '$amount' }
+          total: { $sum: '$totalAmount' }
         }
       }
     ]);
 
     const sportWiseEarnings = await Booking.aggregate([
       {
-        $match: { venue: { $in: venueIds }, status: 'confirmed' }
+        $match: { 
+          venue: { $in: venueIds }, 
+          status: { $in: ['confirmed', 'completed'] } 
+        }
+      },
+      {
+        $lookup: {
+          from: 'courts',
+          localField: 'court',
+          foreignField: '_id',
+          as: 'courtInfo'
+        }
+      },
+      {
+        $unwind: '$courtInfo'
       },
       {
         $group: {
-          _id: '$sport', // Assuming sport is available or can be joined from court
+          _id: '$courtInfo.sport',
           total: { $sum: '$totalAmount' },
           count: { $sum: 1 }
         }

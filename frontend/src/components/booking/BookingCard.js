@@ -32,7 +32,8 @@ const BookingCard = ({ booking, onUpdate, variant = 'grid' }) => {
   };
 
   const isPast = () => {
-    const bookingDateTime = new Date(`${new Date(booking.date).toISOString().split('T')[0]}T${booking.startTime}`);
+    const timeToCheck = booking.endTime || booking.startTime || '23:59';
+    const bookingDateTime = new Date(`${new Date(booking.date).toISOString().split('T')[0]}T${timeToCheck}`);
     return new Date() > bookingDateTime;
   };
 

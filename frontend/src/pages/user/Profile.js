@@ -3,10 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
+import { ownerService } from '../../services/ownerService';
+import { adminService } from '../../services/adminService';
 import {
   FiUser, FiMail, FiPhone, FiLock,
   FiHeart, FiSettings, FiLogOut, FiCamera,
-  FiChevronRight, FiCreditCard, FiBell, FiShield, FiSliders, FiActivity, FiCalendar
+  FiChevronRight, FiCreditCard, FiBell, FiShield, FiSliders, FiActivity, FiCalendar, FiBox, FiMapPin
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 
@@ -15,6 +17,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [saving, setSaving] = useState(false);
+  const [venuesList, setVenuesList] = useState([]);
+  const [loadingVenues, setLoadingVenues] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -39,6 +43,9 @@ const Profile = () => {
         phoneNumber: user.phoneNumber || ''
       }));
       fetchStats();
+      if (activeTab === 'favorites') {
+        fetchVenuesList();
+      }
     }
   }, [user, activeTab]);
 
@@ -47,6 +54,32 @@ const Profile = () => {
       const response = await userService.getUserStats();
       if (response.data?.success) setStats(response.data.stats);
     } catch (error) { console.error('Stats synchronization failure'); }
+  };
+
+  const fetchVenuesList = async () => {
+    try {
+      setLoadingVenues(true);
+      if (user?.role === 'facility_owner') {
+        const response = await ownerService.getVenues();
+        if (response.data?.success || response.data?.data) {
+          setVenuesList(response.data.data.venues || response.data.venues || []);
+        }
+      } else if (user?.role === 'admin') {
+        const response = await adminService.getAllVenues();
+        if (response.data?.success || response.data?.data) {
+          setVenuesList(response.data.data.venues || response.data.venues || []);
+        }
+      } else {
+        const response = await userService.getFavorites();
+        if (response.data?.success) {
+          setVenuesList(response.data.favorites || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch venues list:', error);
+    } finally {
+      setLoadingVenues(false);
+    }
   };
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -71,11 +104,12 @@ const Profile = () => {
 
   const menuItems = [
     { id: 'profile', label: 'Identity Matrix', icon: <FiUser /> },
-    { id: 'favorites', label: 'Arena Sanctuary', icon: <FiHeart /> },
+    { id: 'favorites', label: user?.role === 'facility_owner' ? 'Arena Portfolio' : user?.role === 'admin' ? 'System Arenas' : 'Arena Sanctuary', icon: user?.role === 'facility_owner' || user?.role === 'admin' ? <FiBox /> : <FiHeart /> },
     { id: 'security', label: 'Security Shield', icon: <FiShield /> },
     { id: 'preferences', label: 'System Config', icon: <FiSliders /> },
     { id: 'notifications', label: 'Signal Feed', icon: <FiBell /> },
   ];
+
 
   return (
     <div className="min-h-screen bg-white font-inter overflow-hidden">
@@ -102,7 +136,7 @@ const Profile = () => {
               </div>
               <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">{user?.name}</h2>
               <div className="mt-2 flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-[0.3em] italic">
-                <FiActivity /> {user?.role === 'owner' ? 'COMMANDER PROTOCOL' : 'ELITE ATHLETE PROTOCOL'}
+                <FiActivity /> {user?.role === 'facility_owner' ? 'COMMANDER PROTOCOL' : user?.role === 'admin' ? 'SYSTEM PROTOCOL' : 'ELITE ATHLETE PROTOCOL'}
               </div>
             </div>
           </div>
@@ -159,7 +193,7 @@ const Profile = () => {
                     <div className="space-y-3">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2 italic"><FiCreditCard className="text-primary" /> Operational Rank</label>
                       <div className="bg-primary/5 text-primary rounded-[24px] p-6 text-sm font-black uppercase tracking-[0.2em] border border-primary/10 italic">
-                        {user?.role === 'owner' ? 'COMMANDER RANK' : 'ATHLETE RANK'}
+                        {user?.role === 'facility_owner' ? 'COMMANDER RANK' : user?.role === 'admin' ? 'ADMIN RANK' : 'ATHLETE RANK'}
                       </div>
                     </div>
                   </div>
@@ -173,9 +207,9 @@ const Profile = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-20 border-t border-gray-200">
                   {[
-                    { val: stats.totalBookings, lab: 'RESERVATIONS', icon: <FiCalendar /> },
-                    { val: stats.totalReviews, lab: 'TESTIMONIALS', icon: <FiActivity /> },
-                    { val: stats.favoriteVenuesCount, lab: 'SANCTUARIES', icon: <FiHeart /> },
+                    { val: stats.totalBookings, lab: user?.role === 'facility_owner' ? 'VENUE RESERVATIONS' : user?.role === 'admin' ? 'GLOBAL RESERVATIONS' : 'RESERVATIONS', icon: <FiCalendar /> },
+                    { val: stats.totalReviews, lab: user?.role === 'facility_owner' ? 'VENUE REVIEWS' : user?.role === 'admin' ? 'REGISTERED ARENAS' : 'TESTIMONIALS', icon: user?.role === 'admin' ? <FiBox /> : <FiActivity /> },
+                    { val: stats.favoriteVenuesCount, lab: user?.role === 'facility_owner' ? 'OWNED ARENAS' : user?.role === 'admin' ? 'ACTIVE USERS' : 'SANCTUARIES', icon: user?.role === 'facility_owner' ? <FiBox /> : user?.role === 'admin' ? <FiUser /> : <FiHeart /> },
                   ].map((s, i) => (
                     <div key={i} className="bg-white p-10 rounded-[40px] shadow-premium border border-gray-100 text-center space-y-3 group hover:border-primary/20 transition-all duration-500">
                       <div className="text-primary text-2xl mb-4 group-hover:scale-110 transition-transform">{s.icon}</div>
@@ -218,17 +252,74 @@ const Profile = () => {
               <div className="space-y-20">
                 <header className="space-y-4">
                   <div className="w-16 h-1 bg-primary rounded-full mb-8" />
-                  <h1 className="text-5xl font-black text-gray-800 tracking-tighter uppercase italic leading-none">Arena <span className="text-primary">Sanctuary</span></h1>
-                  <p className="text-xl text-gray-400 font-medium italic">Your curated archive of world-class facilities.</p>
+                  <h1 className="text-5xl font-black text-gray-800 tracking-tighter uppercase italic leading-none">
+                    {user?.role === 'facility_owner' ? 'Arena' : user?.role === 'admin' ? 'System' : 'Arena'}{' '}
+                    <span className="text-primary">{user?.role === 'facility_owner' ? 'Portfolio' : user?.role === 'admin' ? 'Arenas' : 'Sanctuary'}</span>
+                  </h1>
+                  <p className="text-xl text-gray-400 font-medium italic">
+                    {user?.role === 'facility_owner' ? 'Your directory of registered premium venues.' : user?.role === 'admin' ? 'Directory of all arenas on the platform.' : 'Your curated archive of world-class facilities.'}
+                  </p>
                 </header>
-                <div className="py-40 text-center bg-white rounded-[60px] border border-gray-100 shadow-premium space-y-10 italic">
-                  <div className="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mx-auto shadow-inner"><FiHeart size={50} /></div>
-                  <div className="space-y-2">
-                    <h3 className="text-3xl font-black text-gray-800 uppercase tracking-tighter italic">Sanctuary Clear</h3>
-                    <p className="text-gray-400 text-lg font-medium italic max-w-sm mx-auto leading-relaxed">No high-grade venues archived in your personal matrix.</p>
+
+                {loadingVenues ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {[1, 2].map(i => (
+                      <div key={i} className="bg-white rounded-[40px] h-64 animate-pulse border border-gray-100 shadow-premium" />
+                    ))}
                   </div>
-                  <button onClick={() => navigate('/venues')} className="bg-primary text-white px-12 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-110 transition-all duration-500 italic">DISCOVER COORDINATES</button>
-                </div>
+                ) : venuesList.length === 0 ? (
+                  <div className="py-40 text-center bg-white rounded-[60px] border border-gray-100 shadow-premium space-y-10 italic">
+                    <div className="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mx-auto shadow-inner">
+                      {user?.role === 'facility_owner' || user?.role === 'admin' ? <FiBox size={50} /> : <FiHeart size={50} />}
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-3xl font-black text-gray-800 uppercase tracking-tighter italic">
+                        {user?.role === 'facility_owner' ? 'Portfolio Clear' : user?.role === 'admin' ? 'No Arenas Found' : 'Sanctuary Clear'}
+                      </h3>
+                      <p className="text-gray-400 text-lg font-medium italic max-w-sm mx-auto leading-relaxed">
+                        {user?.role === 'facility_owner' ? 'No active arenas registered in your portfolio.' : user?.role === 'admin' ? 'No arenas registered in the system.' : 'No high-grade venues archived in your personal matrix.'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate(user?.role === 'facility_owner' ? '/owner/add-venue' : user?.role === 'admin' ? '/admin/venues' : '/venues')}
+                      className="bg-primary text-white px-12 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-110 transition-all duration-500 italic"
+                    >
+                      {user?.role === 'facility_owner' ? 'DEPLOY ARENA' : user?.role === 'admin' ? 'MANAGE SYSTEM' : 'DISCOVER COORDINATES'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {venuesList.map(venue => {
+                      const venueImg = venue.images?.[0]?.url || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800';
+                      return (
+                        <div key={venue._id} className="bg-white rounded-[40px] overflow-hidden border border-gray-100 shadow-premium group hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between">
+                          <div className="relative h-48 overflow-hidden">
+                            <img src={venueImg} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500" alt="" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
+                            <div className="absolute bottom-6 left-6 text-white space-y-1">
+                              <h3 className="font-black text-xl uppercase italic tracking-tighter leading-none">{venue.name}</h3>
+                              <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] italic flex items-center gap-1.5">
+                                <FiMapPin className="text-primary" /> {venue.location?.city || venue.city || 'REMOTE'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="p-8 flex justify-between items-center bg-white">
+                            <div>
+                              <p className="text-[8px] text-gray-400 font-black uppercase tracking-[0.2em] italic mb-0.5">HOURLY RATE</p>
+                              <p className="text-2xl font-black text-primary italic tracking-tighter leading-none">₹{venue.pricing?.hourly || venue.pricePerHour || 0}</p>
+                            </div>
+                            <button
+                              onClick={() => navigate(user?.role === 'facility_owner' ? `/owner/facilities` : user?.role === 'admin' ? `/admin/venues` : `/venue/${venue._id}`)}
+                              className="bg-gray-900 text-white px-6 py-3.5 rounded-[18px] text-[9px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-primary transition-all italic"
+                            >
+                              {user?.role === 'facility_owner' || user?.role === 'admin' ? 'MANAGE' : 'BOOK NOW'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
